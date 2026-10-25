@@ -49,8 +49,6 @@
   #healthHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #2a2a2a; }
   .healthBtns { display: flex; gap: 6px; }
   .healthBtns button, #healthCopyCloseBtn { background: #333; color: #eee; border: none; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
-  #wifiPowerRow { display: none; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px 0; font-size: 13px; color: #cfcfcf; }
-  #wifiPowerRow button { min-height: 44px; padding: 0 14px; }
   #healthStatus { font-size: 12px; color: #9a9a9a; padding: 6px 14px 0; min-height: 16px; }
   #healthCopyFallback { display: none; margin: 6px 14px 0; font-size: 12px; }
   #healthCopyBox { width: 100%; box-sizing: border-box; margin: 4px 0; background: #0d0d0d; color: #ddd; border: 1px solid #333; border-radius: 6px; font-family: inherit; font-size: 11px; }
@@ -436,6 +434,7 @@
   <div id="moreMenu" role="menu" aria-label="More options">
     <button id="signalHistoryToggle" class="iconBtn" role="menuitem" title="Signal history for this conversation" aria-label="Signal history for this conversation"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" stroke="#9e9e9e" stroke-width="2"/><polyline points="6.5,16 10.5,10.5 14,13.5 20,6" stroke="#4fc3f7" stroke-width="2.3"/><circle cx="6.5" cy="16" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="10.5" cy="10.5" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="14" cy="13.5" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="20" cy="6" r="1.5" fill="#4fc3f7" stroke="none"/></svg><span class="menuLabel">Signal history</span></button>
     <button id="healthBtn" class="iconBtn" role="menuitem" title="Board health: what this board is doing, for finding problems" aria-label="Board health: what this board is doing, for finding problems"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke="#e0e0e0" stroke-width="2"/><path d="M12 7.5v9M7.5 12h9" stroke="#66bb6a" stroke-width="2.4"/></svg><span class="menuLabel">Board health</span></button>
+    <button id="wifiMenuBtn" role="menuitem" style="display:none" title="Turn the board\u2019s WiFi on or off. Off saves battery; Bluetooth keeps working."><span class="menuEmoji" aria-hidden="true">📶</span><span class="menuLabel">WiFi</span></button>
     <button id="packetToggleBtn" class="iconBtn" role="menuitem" title="Packets: the raw data this device is sending and hearing" aria-label="Packets: the raw data this device is sending and hearing"><span class="menuEmoji" aria-hidden="true">🎁</span><span class="menuLabel">Packets</span></button>
     <button id="hapticBtn" role="menuitem" title="A small vibration when you tap a button (on phones that allow it)"><span class="menuEmoji" aria-hidden="true">📳</span><span class="menuLabel">Touch feedback</span></button>
     <button id="autoPointsBtn" role="menuitem" title="When someone sends a meet point, car point or place, put it on your map by themselves (each message has an Undo)"><span class="menuEmoji" aria-hidden="true">&#x1F6A9;</span><span class="menuLabel">Add shared points automatically</span></button>
@@ -523,7 +522,6 @@
 <div id="healthOverlay" role="dialog" aria-modal="true" aria-labelledby="healthTitle">
   <div id="healthPanel">
     <div id="healthHeader"><span id="healthTitle">Board health</span><span class="healthBtns"><button id="healthRefreshBtn" title="Read the board&#x2019;s health again">Refresh</button><button id="healthCopyBtn" title="Copy all of this to the clipboard">Copy</button><button id="healthCloseBtn" aria-label="Close">✕</button></span></div>
-    <div id="wifiPowerRow"><span id="wifiPowerText"></span><button id="wifiPowerBtn" type="button"></button></div>
     <div id="healthStatus" role="status"></div>
     <div id="healthCopyFallback">
       <div>Your browser wouldn&#x2019;t copy automatically. Select all of the text below and copy it:</div>
@@ -619,23 +617,25 @@
     if (b) b.textContent = bleDevice ? 'Connect again' : 'Connect by Bluetooth';
     wifiPowerUpdate();
   }
-  // WiFi on/off (Bluetooth only: a page on WiFi cannot switch off the WiFi it is using). Two taps, because the board restarts.
-  let wifiOffNow = false, wifiPowerArmed = false, wifiPowerBusy = false;
+  // WiFi on/off for the board (menu item "WiFi: ..."). The board restarts to apply it, and the choice is remembered on the board.
+  let wifiOffNow = false, wifiBuilt = false, wifiPowerBusy = false;
   function wifiPowerUpdate() {
-    const row = document.getElementById('wifiPowerRow'), txt = document.getElementById('wifiPowerText'), btn = document.getElementById('wifiPowerBtn');
-    if (!row || !txt || !btn) return;
-    row.style.display = (bleMode && ws && ws.readyState === 1) ? 'flex' : 'none';
-    if (wifiPowerBusy) { txt.textContent = 'The board is restarting to apply this. Bluetooth reconnects by itself.'; btn.disabled = true; return; }
-    btn.disabled = false;
-    if (wifiPowerArmed) { txt.textContent = 'The board restarts (a few seconds). Tap again to confirm.'; btn.textContent = wifiOffNow ? 'Yes, turn WiFi on' : 'Yes, turn WiFi off'; return; }
-    txt.textContent = wifiOffNow ? 'WiFi on this board is OFF (saves battery). Bluetooth only.' : 'WiFi on this board is on. Turning it off saves battery; Bluetooth keeps working.';
-    btn.textContent = wifiOffNow ? 'Turn WiFi on' : 'Turn WiFi off';
+    const b = document.getElementById('wifiMenuBtn');
+    if (!b) return;
+    b.style.display = wifiBuilt ? '' : 'none'; // only on a board that also has Bluetooth to fall back on
+    b.disabled = wifiPowerBusy;
+    const lab = b.querySelector('.menuLabel');
+    if (lab) lab.textContent = wifiPowerBusy ? 'WiFi: the board is restarting\u2026' : ('WiFi: ' + (wifiOffNow ? 'off (tap to turn on)' : 'on (tap to turn off)'));
   }
   function wifiPowerTap() {
-    if (!bleMode || !ws || ws.readyState !== 1 || wifiPowerBusy) return;
-    if (!wifiPowerArmed) { wifiPowerArmed = true; wifiPowerUpdate(); setTimeout(() => { if (wifiPowerArmed && !wifiPowerBusy) { wifiPowerArmed = false; wifiPowerUpdate(); } }, 8000); return; }
-    wifiPowerArmed = false; wifiPowerBusy = true; wifiPowerUpdate();
-    ws.send(JSON.stringify({action: 'setWifi', off: !wifiOffNow}));
+    if (!ws || ws.readyState !== 1 || wifiPowerBusy) return;
+    const turnOff = !wifiOffNow;
+    const msg = !turnOff ? 'Turn WiFi on? The board restarts (a few seconds). WiFi uses more battery.'
+      : bleMode ? 'Turn WiFi off? The board restarts (a few seconds) and this Bluetooth page reconnects by itself. This saves battery.'
+      : 'Turn WiFi off? This page is using WiFi, so it will stop working and you will need the Bluetooth page to reach the board. The board restarts. This saves battery.';
+    if (!confirm(msg)) return;
+    wifiPowerBusy = true; wifiPowerUpdate();
+    ws.send(JSON.stringify({action: 'setWifi', off: turnOff}));
     setTimeout(() => { wifiPowerBusy = false; wifiPowerUpdate(); }, 20000);
   }
   async function bleChoose() { // runs from a tap: the browser only lets a person pick a device in response to one
@@ -749,6 +749,22 @@
     // Give the board our real clock time so it can stamp messages with an
     // actual date/time instead of just its own uptime — no internet needed.
     ws.send(JSON.stringify({action: 'timeSync', epochMs: Date.now()}));
+    if (bleMode) bleHelloWatch();
+  }
+  // Over Bluetooth the board greets a new connection with its list of devices and the history. If that greeting never arrives (it can be lost
+  // when a connection drops and returns quickly), ask for it again: after 3 s, then every 4 s, up to 5 times.
+  let bleGotConfig = false, bleHelloTimer = null, bleHelloTries = 0;
+  function bleHelloWatch() {
+    bleGotConfig = false; bleHelloTries = 0;
+    if (bleHelloTimer !== null) clearTimeout(bleHelloTimer);
+    const step = () => {
+      bleHelloTimer = null;
+      if (bleGotConfig || !ws || ws.readyState !== 1 || bleHelloTries >= 5) return;
+      bleHelloTries++;
+      try { ws.send(JSON.stringify({action: 'hello'})); } catch (e) { /* the link is going away */ }
+      bleHelloTimer = setTimeout(step, 4000);
+    };
+    bleHelloTimer = setTimeout(step, 3000);
   }
 
   function wsOnClose() {
@@ -5585,10 +5601,11 @@
       return;
     }
 
-    if (data.type === 'wifiSet') { wifiOffNow = !!data.off; wifiPowerBusy = true; wifiPowerArmed = false; wifiPowerUpdate(); return; }
+    if (data.type === 'wifiSet') { wifiOffNow = !!data.off; wifiPowerBusy = true; wifiPowerUpdate(); return; }
 
     if (data.type === 'config') {
-      wifiOffNow = !!data.wifiOff; wifiPowerBusy = false; wifiPowerUpdate();
+      bleGotConfig = true;
+      wifiOffNow = !!data.wifiOff; wifiBuilt = !!data.bleBuilt; wifiPowerBusy = false; wifiPowerUpdate();
       peers = data.peers;
       peers.forEach(p => { p.gpsAgeStamp = Date.now(); });
       selfHasFix = !!data.selfHasFix;
@@ -6103,7 +6120,7 @@
   document.getElementById('healthBtn').onclick = openHealth;
   document.getElementById('healthCloseBtn').onclick = closeHealth;
   document.getElementById('healthRefreshBtn').onclick = loadHealth;
-  document.getElementById('wifiPowerBtn').onclick = wifiPowerTap;
+  document.getElementById('wifiMenuBtn').addEventListener('click', wifiPowerTap);
   healthCopyBtn.onclick = copyHealth;
   document.getElementById('healthCopyCloseBtn').onclick = hideHealthCopyFallback;
   healthAutoEl.onchange = () => {
