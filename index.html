@@ -49,6 +49,8 @@
   #healthHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #2a2a2a; }
   .healthBtns { display: flex; gap: 6px; }
   .healthBtns button, #healthCopyCloseBtn { background: #333; color: #eee; border: none; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+  #wifiPowerRow { display: none; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px 0; font-size: 13px; color: #cfcfcf; }
+  #wifiPowerRow button { min-height: 44px; padding: 0 14px; }
   #healthStatus { font-size: 12px; color: #9a9a9a; padding: 6px 14px 0; min-height: 16px; }
   #healthCopyFallback { display: none; margin: 6px 14px 0; font-size: 12px; }
   #healthCopyBox { width: 100%; box-sizing: border-box; margin: 4px 0; background: #0d0d0d; color: #ddd; border: 1px solid #333; border-radius: 6px; font-family: inherit; font-size: 11px; }
@@ -521,6 +523,7 @@
 <div id="healthOverlay" role="dialog" aria-modal="true" aria-labelledby="healthTitle">
   <div id="healthPanel">
     <div id="healthHeader"><span id="healthTitle">Board health</span><span class="healthBtns"><button id="healthRefreshBtn" title="Read the board&#x2019;s health again">Refresh</button><button id="healthCopyBtn" title="Copy all of this to the clipboard">Copy</button><button id="healthCloseBtn" aria-label="Close">✕</button></span></div>
+    <div id="wifiPowerRow"><span id="wifiPowerText"></span><button id="wifiPowerBtn" type="button"></button></div>
     <div id="healthStatus" role="status"></div>
     <div id="healthCopyFallback">
       <div>Your browser wouldn&#x2019;t copy automatically. Select all of the text below and copy it:</div>
@@ -614,6 +617,26 @@
     c.style.display = (bleMode && !open) ? 'block' : 'none';
     const b = document.getElementById('bleConnectBtn');
     if (b) b.textContent = bleDevice ? 'Connect again' : 'Connect by Bluetooth';
+    wifiPowerUpdate();
+  }
+  // WiFi on/off (Bluetooth only: a page on WiFi cannot switch off the WiFi it is using). Two taps, because the board restarts.
+  let wifiOffNow = false, wifiPowerArmed = false, wifiPowerBusy = false;
+  function wifiPowerUpdate() {
+    const row = document.getElementById('wifiPowerRow'), txt = document.getElementById('wifiPowerText'), btn = document.getElementById('wifiPowerBtn');
+    if (!row || !txt || !btn) return;
+    row.style.display = (bleMode && ws && ws.readyState === 1) ? 'flex' : 'none';
+    if (wifiPowerBusy) { txt.textContent = 'The board is restarting to apply this. Bluetooth reconnects by itself.'; btn.disabled = true; return; }
+    btn.disabled = false;
+    if (wifiPowerArmed) { txt.textContent = 'The board restarts (a few seconds). Tap again to confirm.'; btn.textContent = wifiOffNow ? 'Yes, turn WiFi on' : 'Yes, turn WiFi off'; return; }
+    txt.textContent = wifiOffNow ? 'WiFi on this board is OFF (saves battery). Bluetooth only.' : 'WiFi on this board is on. Turning it off saves battery; Bluetooth keeps working.';
+    btn.textContent = wifiOffNow ? 'Turn WiFi on' : 'Turn WiFi off';
+  }
+  function wifiPowerTap() {
+    if (!bleMode || !ws || ws.readyState !== 1 || wifiPowerBusy) return;
+    if (!wifiPowerArmed) { wifiPowerArmed = true; wifiPowerUpdate(); setTimeout(() => { if (wifiPowerArmed && !wifiPowerBusy) { wifiPowerArmed = false; wifiPowerUpdate(); } }, 8000); return; }
+    wifiPowerArmed = false; wifiPowerBusy = true; wifiPowerUpdate();
+    ws.send(JSON.stringify({action: 'setWifi', off: !wifiOffNow}));
+    setTimeout(() => { wifiPowerBusy = false; wifiPowerUpdate(); }, 20000);
   }
   async function bleChoose() { // runs from a tap: the browser only lets a person pick a device in response to one
     if (!navigator.bluetooth) { bleNote('This browser cannot use Bluetooth. Use Chrome on Android, and open this page from a secure (https) address or from a file.'); return; }
@@ -5555,13 +5578,17 @@
     wsLastRxAt = Date.now(); // anything from the board proves the connection is alive
     const data = JSON.parse(evt.data);
     if (data.type === 'hb') return; // just the board's answer to "are you there?"
+    if (data.type === 'health') { if (healthWait) { const w = healthWait; healthWait = null; clearTimeout(w.to); w.res(String(data.text || '')); } return; } // the /health text, asked for over Bluetooth
 
     if (data.type === 'packet') {
       recordPacket(data);
       return;
     }
 
+    if (data.type === 'wifiSet') { wifiOffNow = !!data.off; wifiPowerBusy = true; wifiPowerArmed = false; wifiPowerUpdate(); return; }
+
     if (data.type === 'config') {
+      wifiOffNow = !!data.wifiOff; wifiPowerBusy = false; wifiPowerUpdate();
       peers = data.peers;
       peers.forEach(p => { p.gpsAgeStamp = Date.now(); });
       selfHasFix = !!data.selfHasFix;
@@ -6013,6 +6040,14 @@
   const HEALTH_REFRESH_MS = 5000, HEALTH_TIMEOUT_MS = 10000;
   const healthOverlay = document.getElementById('healthOverlay'), healthTextEl = document.getElementById('healthText'), healthStatusEl = document.getElementById('healthStatus');
   const healthAutoEl = document.getElementById('healthAuto'), healthCopyBtn = document.getElementById('healthCopyBtn');
+  let healthWait = null; // {res, rej, to}: a /health request in flight over Bluetooth
+  function readHealthOverBluetooth() { // there is no web address to read it from, so ask the board over the same link
+    return new Promise((res, rej) => {
+      const to = setTimeout(() => { healthWait = null; rej(new Error('the board did not answer in ' + (HEALTH_TIMEOUT_MS / 1000) + ' seconds')); }, HEALTH_TIMEOUT_MS);
+      healthWait = {res: res, rej: rej, to: to};
+      if (!wsSend({action: 'getHealth'}, true)) { clearTimeout(to); healthWait = null; rej(new Error('Bluetooth is not connected')); }
+    });
+  }
   let healthRaw = '', healthBusy = false, healthTimer = null, healthCopyLabelTimer = null;
   const healthIsOpen = () => healthOverlay.classList.contains('open');
   function renderHealthText(text) { // one div per line, filled with textContent: nothing the board says can ever become markup
@@ -6034,9 +6069,13 @@
     const ctl = typeof AbortController === 'function' ? new AbortController() : null;
     const to = ctl ? setTimeout(() => ctl.abort(), HEALTH_TIMEOUT_MS) : null;
     try {
-      const r = await fetch('/health', { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
-      if (!r.ok) throw new Error('the board answered ' + r.status);
-      const text = await r.text();
+      let text;
+      if (bleMode) text = await readHealthOverBluetooth();
+      else {
+        const r = await fetch('/health', { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+        if (!r.ok) throw new Error('the board answered ' + r.status);
+        text = await r.text();
+      }
       healthRaw = text;
       renderHealthText(text);
       healthStatusEl.textContent = 'Read at ' + new Date().toLocaleTimeString() + (healthTimer !== null ? ' \u00B7 refreshing every 5 seconds' : '');
@@ -6064,6 +6103,7 @@
   document.getElementById('healthBtn').onclick = openHealth;
   document.getElementById('healthCloseBtn').onclick = closeHealth;
   document.getElementById('healthRefreshBtn').onclick = loadHealth;
+  document.getElementById('wifiPowerBtn').onclick = wifiPowerTap;
   healthCopyBtn.onclick = copyHealth;
   document.getElementById('healthCopyCloseBtn').onclick = hideHealthCopyFallback;
   healthAutoEl.onchange = () => {
