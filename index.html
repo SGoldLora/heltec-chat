@@ -1496,7 +1496,7 @@
   // ---- making one from OpenStreetMap ----
   const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
   const MAP_CHUNK_MILES = {all: 6, main: 12, basic: 25};  // the area is fetched in squares this wide, so no single request is heavy
-  const MAP_MAX_CHUNKS = 40;
+  const MAP_MAX_CHUNKS = 64;
   const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2}; // line-simplifying tolerance, in 2 m steps
 
   function mapBoxFor(lat, lon, radiusMiles) {
@@ -1515,7 +1515,7 @@
     const bb = '(' + [b.s, b.w, b.n, b.e].map(v => v.toFixed(5)).join(',') + ')';
     const major = 'motorway|trunk|primary|secondary|motorway_link|trunk_link|primary_link|secondary_link';
     const roads = {all: major + '|tertiary|tertiary_link|unclassified|residential|living_street', main: major + '|tertiary|tertiary_link', basic: major}[detail] || major;
-    const q = ['way["highway"~"^(' + roads + ')$"]' + bb, 'way["waterway"~"^(river|stream|canal)$"]' + bb, 'way["natural"~"^(coastline|water)$"]' + bb, 'rel["natural"="water"]' + bb];
+    const q = ['way["highway"~"^(' + roads + ')$"]' + bb, 'way["waterway"~"^(' + (detail === 'basic' ? 'river|canal' : 'river|stream|canal') + ')$"]' + bb, 'way["natural"~"^(coastline|water)$"]' + bb, 'rel["natural"="water"]' + bb];
     if (detail !== 'basic') {
       q.push('way["highway"~"^(path|footway|track|bridleway|cycleway)$"]["footway"!~"^(sidewalk|crossing)$"]["access"!~"^(private|no)$"]' + bb);
       q.push('way["railway"~"^(rail|light_rail|narrow_gauge)$"]' + bb);
@@ -1643,6 +1643,8 @@
     for (let attempt = 0; attempt < 6; attempt++) {
       if (hooks.signal && hooks.signal.aborted) throw new Error('cancelled');
       const url = OVERPASS_SERVERS[attempt % OVERPASS_SERVERS.length];
+      const host = url.replace(/^https?:\/\//, '').split('/')[0], note = (t) => { if (hooks.onNote) hooks.onNote(t); };
+      note('Asking ' + host + ' (try ' + (attempt + 1) + ' of 6)\u2026');
       try {
         const r = await busyWrap('Getting map data from the internet', () => hooks.fetch(url, {method: 'POST', body: 'data=' + encodeURIComponent(query), headers: {'Content-Type': 'application/x-www-form-urlencoded'}, signal: hooks.signal}));
         if (r.status === 429 || r.status === 502 || r.status === 503 || r.status === 504) lastErr = 'the map server is busy (' + r.status + ')';
@@ -1657,6 +1659,7 @@
         if ((hooks.signal && hooks.signal.aborted) || (e && e.message === 'cancelled')) throw new Error('cancelled');
         lastErr = (e && e.message) ? e.message : 'a network error';
       }
+      note('Try ' + (attempt + 1) + ' failed (' + host + '): ' + lastErr + '. Trying again shortly\u2026');
       await hooks.sleep(delays[Math.min(attempt, delays.length - 1)]);
     }
     throw new Error('Could not get map data: ' + lastErr + '. Check that the phone has internet and try again in a minute.');
@@ -1711,7 +1714,7 @@
   const mapForm = {name: '', centre: 'me', typed: '', radius: 12, detail: 'all', budgetKb: 400}; // held here so a redraw cannot reset what was chosen
   const mapBuildState = {phase: 'idle', text: '', done: 0, total: 0, result: null, ctl: null};
   let mapsNote = '';
-  const MAP_RADII = {all: [3, 6, 12], main: [3, 6, 12, 25], basic: [12, 25, 50]};
+  const MAP_RADII = {all: [3, 6, 12], main: [3, 6, 12, 25], basic: [12, 25, 50, 75, 100]};
 
   // ---- maps kept on the phone (Bluetooth mode) ----
   // Over Bluetooth the board cannot carry maps (too slow, too little space), so the page keeps them in the phone's own storage (IndexedDB;
@@ -2187,21 +2190,30 @@
     const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
     return (Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0)) ? {lat: lat, lon: lon} : null;
   }
-  async function mapStartBuild() {
+  async function mapStartBuild() { // (anything unexpected is shown under the button instead of vanishing)
+    try { await mapStartBuildInner(); }
+    catch (e) {
+      try { console.error('map build', e); } catch (e2) { /* no console */ }
+      Object.assign(mapBuildState, {phase: 'error', text: 'The map could not be started: ' + ((e && e.message) || e), ctl: null}); renderMap();
+    }
+  }
+  async function mapStartBuildInner() {
     mapsNote = '';
+    const refuse = (t) => { Object.assign(mapBuildState, {phase: 'error', text: t, done: 0, total: 0, result: null, ctl: null}); renderMap(); const e = document.querySelector('#mapBuildBtn ~ .mapError'); if (e && e.scrollIntoView) e.scrollIntoView({block: 'nearest'}); }; // shown right under the button (the old note was at the top of the list, out of sight)
     const name = mapForm.name.trim();
-    if (!mapSlug(name)) { mapsNote = 'Give the map a name using letters or numbers.'; renderMap(); return; }
+    if (!mapSlug(name)) { refuse('Give the map a name using letters or numbers.'); return; }
     let c;
-    if (mapForm.centre === 'me') { if (!selfHasFix) { mapsNote = 'This board has no position yet. Type coordinates instead.'; renderMap(); return; } c = {lat: selfLat, lon: selfLon}; }
-    else { c = mapParseCentre(mapForm.typed); if (!c) { mapsNote = 'Type the centre as latitude, longitude, for example 27.93, -82.72.'; renderMap(); return; } }
-    if (typeof fetch !== 'function') { mapsNote = 'This browser cannot download map data.'; renderMap(); return; }
+    if (mapForm.centre === 'me') { if (!selfHasFix) { refuse('This board has no position yet. Type coordinates instead.'); return; } c = {lat: selfLat, lon: selfLon}; }
+    else { c = mapParseCentre(mapForm.typed); if (!c) { refuse('Type the centre as latitude, longitude, for example 27.93, -82.72.'); return; } }
+    if (typeof fetch !== 'function') { refuse('This browser cannot download map data.'); return; }
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : {signal: {aborted: false}, abort() { this.signal.aborted = true; }};
-    Object.assign(mapBuildState, {phase: 'running', text: 'Starting\u2026', done: 0, total: 1, result: null, ctl: ctl});
+    Object.assign(mapBuildState, {phase: 'running', text: 'Starting\u2026', note: '', done: 0, total: 1, result: null, ctl: ctl});
     renderMap();
     try {
       const res = await mapBuild({name: name, lat: c.lat, lon: c.lon, radiusMiles: mapForm.radius, detail: mapForm.detail, budgetBytes: Math.min(mapForm.budgetKb * 1024, MAP_MAX_BYTES)}, {
         fetch: (u, o) => fetch(u, o), sleep: (ms) => new Promise(r => setTimeout(r, ms)), signal: ctl.signal, now: () => Date.now(),
-        onProgress: (d, t, text) => { mapBuildState.done = d; mapBuildState.total = t; mapBuildState.text = text; if (mapIsOpen()) renderMap(); }
+        onProgress: (d, t, text) => { mapBuildState.done = d; mapBuildState.total = t; mapBuildState.text = text; if (mapIsOpen()) renderMap(); },
+        onNote: (text) => { mapBuildState.note = text; if (mapIsOpen()) renderMap(); }
       });
       Object.assign(mapBuildState, {phase: 'done', result: res, ctl: null});
     } catch (e) {
@@ -2252,7 +2264,10 @@
     const nameIn = mk('input'); nameIn.id = 'mapName'; nameIn.maxLength = MAP_NAME_MAX; nameIn.placeholder = 'e.g. Home'; nameIn.value = mapForm.name; nameIn.oninput = () => { mapForm.name = nameIn.value; };
     field('Name', nameIn);
     field('Centre', sel('mapCentre', [['me', 'My position'], ['typed', 'Typed coordinates']], mapForm.centre, v => { mapForm.centre = v; renderMap(); }));
-    if (mapForm.centre === 'typed') { const t = mk('input'); t.id = 'mapTyped'; t.placeholder = '27.93, -82.72'; t.value = mapForm.typed; t.oninput = () => { mapForm.typed = t.value; }; field('Latitude, longitude', t); }
+    if (mapForm.centre === 'typed') { const t = mk('input'); t.id = 'mapTyped'; t.placeholder = '27.93, -82.72'; t.value = mapForm.typed; t.oninput = () => { mapForm.typed = t.value; }; field('Latitude, longitude', t);
+      if (pickedPoint) { const up = mk('button', '', 'Use the spot picked on the radar (' + pickedText() + ')'); up.id = 'mapUsePicked'; up.onclick = () => { mapForm.typed = pickedText(); renderMap(); }; form.appendChild(up); }
+    }
+    if (mapForm.detail === 'basic' && mapForm.radius >= 50) form.appendChild(mk('div', 'mapSub', 'A wide, simple map: main roads, rivers, lakes and towns only. Make smaller detailed maps inside it and the radar draws them on top, so the detail fills in wherever you have one.'));
     field('Detail', sel('mapDetail', [['all', 'Everything: streets, trails, water'], ['main', 'Main roads, trails and water'], ['basic', 'Main roads and water only']], mapForm.detail, v => { mapForm.detail = v; if (!MAP_RADII[v].includes(mapForm.radius)) mapForm.radius = MAP_RADII[v][MAP_RADII[v].length - 1]; renderMap(); }));
     field('Radius', sel('mapRadius', MAP_RADII[mapForm.detail].map(r => [r, r + ' miles (' + 2 * r + ' \u00D7 ' + 2 * r + ' mi)']), mapForm.radius, v => { mapForm.radius = parseInt(v, 10); }));
     field('Size limit', sel('mapBudget', [[200, '200 KB'], [400, '400 KB'], [600, '600 KB']], mapForm.budgetKb, v => { mapForm.budgetKb = parseInt(v, 10); }));
@@ -2262,6 +2277,7 @@
       const cancel = mk('button', '', 'Cancel'); cancel.id = 'mapCancelBtn'; cancel.onclick = () => { if (b.ctl) b.ctl.abort(); }; form.appendChild(cancel);
       const bar = mk('div', 'mapBar'), fill = mk('div'); fill.style.width = Math.round(100 * b.done / Math.max(1, b.total)) + '%'; bar.appendChild(fill); form.appendChild(bar);
       form.appendChild(mk('div', 'mapSub', b.text));
+      if (b.note) { const nn = mk('div', 'mapSub', b.note); nn.id = 'mapAttemptNote'; form.appendChild(nn); }
     }
     if (b.phase === 'error') form.appendChild(mk('div', 'mapError', b.text));
     body.appendChild(form);
@@ -2294,7 +2310,7 @@
 
   function mapIsOpen() { return document.getElementById('mapOverlay').classList.contains('open'); }
   function openMap() { if (!mapList) { mapListTries = 0; refreshMapList(); } for (const [k, v] of [...mapCache.entries()]) if (v.state === 'error') mapCache.delete(k); closeRoster(); document.getElementById('mapOverlay').classList.add('open'); if (mapTab === 'radar') { compassStart(); pointNoticesSeen(); } renderMap(); }
-  function closeMap() { document.getElementById('mapOverlay').classList.remove('open'); compassStop(); radarSheet = null; radarSelected = null; replayStop(); markSel = null; markPlacing = false; for (const k of Object.keys(radarSheetScroll)) delete radarSheetScroll[k]; } // the next visit starts clean (a retrace in progress is kept: it is a way home)
+  function closeMap() { document.getElementById('mapOverlay').classList.remove('open'); compassStop(); radarSheet = null; radarSelected = null; replayStop(); markSel = null; markPlacing = false; pickedPoint = null; for (const k of Object.keys(radarSheetScroll)) delete radarSheetScroll[k]; } // the next visit starts clean (a retrace in progress is kept: it is a way home)
 
   // ---- the radar panel in a browser tab of its own, filling the window ----
   // The same page is opened with ?view=map&tab=...; it makes its own connection to the board, so it stays live.
@@ -2529,6 +2545,7 @@
   const marksAny = () => !!(marks.car || marks.meet || wpKeys().length);
   function markInfo(k) { return MARK_INFO[k] || {name: marks[k] ? marks[k].name : 'Place', glyph: '\uD83D\uDCCD', colour: '#b39ddb'}; }
   let markSel = null, markGoto = null, markPlacing = false;
+  let pickedPoint = null; // a spot tapped on the radar to read or copy its coordinates (or use as the centre of a new map)
   // Several tabs of this page share one saved copy. So every change first re-reads what is saved (marksSync), then changes that and saves
   // it, rather than saving this tab's older picture over the top; and a change made in another tab shows up here (the "storage" event).
   function marksRead() { // what is saved, as a fresh object; null when it cannot be read (then the picture in memory is kept)
@@ -2958,7 +2975,29 @@
       grp.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pick(); } });
       g.appendChild(grp);
     }
+    if (pickedPoint) { // the spot picked for its coordinates: a small crosshair
+      const q = G.ll(pickedPoint.lat, pickedPoint.lon), x = q.x.toFixed(1), y = q.y.toFixed(1), c = V.light ? '#b71c1c' : '#ff8a80';
+      const cg = svgEl('g', {class: 'pickedPoint', 'aria-hidden': 'true'});
+      cg.appendChild(svgEl('circle', {cx: x, cy: y, r: 9, fill: 'none', stroke: V.halo, 'stroke-width': 5}));
+      cg.appendChild(svgEl('circle', {cx: x, cy: y, r: 9, fill: 'none', stroke: c, 'stroke-width': 2.5}));
+      cg.appendChild(svgEl('path', {d: 'M' + x + ' ' + (q.y - 15).toFixed(1) + 'V' + (q.y + 15).toFixed(1) + 'M' + (q.x - 15).toFixed(1) + ' ' + y + 'H' + (q.x + 15).toFixed(1), stroke: c, 'stroke-width': 2}));
+      g.appendChild(cg);
+    }
     if (g.childNodes.length) world.appendChild(g);
+  }
+  const pickedText = () => pickedPoint ? pickedPoint.lat.toFixed(5) + ', ' + pickedPoint.lon.toFixed(5) : '';
+  function coordCardEl(stage, G) { // the coordinates of the spot you tapped, with ways to use them
+    const card = document.createElement('div'); card.className = 'radarCard'; card.id = 'coordCard'; card.style.bottom = (G.dh + 8) + 'px';
+    const top = document.createElement('div'); top.className = 'radarCardTop';
+    const nm = document.createElement('span'); nm.className = 'radarCardName'; nm.id = 'coordText'; nm.textContent = pickedText(); top.appendChild(nm); card.appendChild(top);
+    const ln = document.createElement('div'); ln.className = 'radarCardLine'; ln.textContent = 'Latitude, longitude of the spot you tapped.'; card.appendChild(ln);
+    const row = document.createElement('div'); row.className = 'radarCardButtons';
+    const wide = (id, label, primary, fn) => { const b = radarButton(id, 'radarBtnWide' + (primary ? ' primary' : ''), label, '', fn); b.textContent = label; row.appendChild(b); return b; };
+    wide('coordCopy', 'Copy', true, async () => { const ok = await copyTextToClipboard(pickedText()); toast(ok ? 'Copied ' + pickedText() : 'Could not copy; select the numbers and copy them by hand'); });
+    wide('coordUse', 'Use for a new map', false, () => { mapForm.centre = 'typed'; mapForm.typed = pickedText(); setMapTab('maps'); renderMap(); });
+    wide('coordAgain', 'Pick another', false, () => { markPlacing = 'coords'; renderMap(); });
+    wide('coordClear', 'Clear', false, () => { pickedPoint = null; renderMap(); });
+    card.appendChild(row); stage.appendChild(card);
   }
   function markCardEl(stage, G, k) { // what you know about a mark, and what you can do with it
     const m = marks[k], info = markInfo(k), card = document.createElement('div');
@@ -2986,8 +3025,8 @@
   function markBannerEl(box) { // the banner while leading you to a mark, and the prompt while choosing a meet point
     if (markPlacing) {
       const b = document.createElement('div'); b.className = 'tripBanner'; b.id = 'markPlaceBar'; b.setAttribute('role', 'status');
-      const t = document.createElement('span'); t.className = 'tripBannerText'; t.textContent = markPlacing === 'wp' ? 'Tap the map where the place is.' : 'Tap the map where you want to meet.'; b.appendChild(t);
-      b.appendChild(radarButton('markPlaceCancel', 'radarBtnSquare', markPlacing === 'wp' ? 'Cancel choosing a place' : 'Cancel choosing a meet point', RADAR_ICON.close, () => { markPlacing = false; renderMap(); }));
+      const t = document.createElement('span'); t.className = 'tripBannerText'; t.textContent = markPlacing === 'wp' ? 'Tap the map where the place is.' : markPlacing === 'coords' ? 'Tap the map to read its coordinates.' : 'Tap the map where you want to meet.'; b.appendChild(t);
+      b.appendChild(radarButton('markPlaceCancel', 'radarBtnSquare', markPlacing === 'wp' ? 'Cancel choosing a place' : markPlacing === 'coords' ? 'Cancel reading coordinates' : 'Cancel choosing a meet point', RADAR_ICON.close, () => { markPlacing = false; renderMap(); }));
       box.appendChild(b);
     }
     if (markGoto && marks[markGoto]) {
@@ -3010,7 +3049,8 @@
     const was = markPlacing;
     markPlacing = false;
     const la = p2 * 180 / Math.PI, lo = ((l2 * 180 / Math.PI + 540) % 360) - 180;
-    if (was === 'wp') { if (!wpAsk(la, lo)) renderMap(); } else markSet('meet', la, lo, '');
+    if (was === 'coords') { pickedPoint = {lat: la, lon: lo}; radarSelected = null; markSel = null; renderMap(); }
+    else if (was === 'wp') { if (!wpAsk(la, lo)) renderMap(); } else markSet('meet', la, lo, '');
   }
   function marksSheetSection(body, sec, wide, para) { // inside the Places sheet
     sec('Places');
@@ -3023,6 +3063,7 @@
     const keys = wpKeys();
     para(keys.length ? 'Tap one to see it on the map.' : 'Nothing saved yet. Add a place and give it a name, like "Trailhead" or "Camp".', 'wpNote', 'mapNote');
     for (const k of keys) wide('wpRow_' + k, '\uD83D\uDCCD ' + marks[k].name + ' \u00B7 ' + markWords(k), false, () => { markSel = k; radarSelected = null; radarSheet = null; renderMap(); });
+    wide('coordPickTap', 'Read or copy coordinates: choose on the map', false, () => { markPlacing = 'coords'; radarSheet = null; radarSelected = null; markSel = null; renderMap(); }, !selfHasFix);
     wide('wpAddHere', 'Add a place: right here', false, () => { const key = wpAsk(selfLat, selfLon); if (key) { radarSheet = null; renderMap(); } }, !selfHasFix || keys.length >= WP_MAX);
     wide('wpAddTap', 'Add a place: choose on the map', false, () => { markPlacing = 'wp'; radarSheet = null; radarSelected = null; markSel = null; renderMap(); }, !selfHasFix || keys.length >= WP_MAX);
   }
@@ -3850,7 +3891,7 @@
       } else if (e.key === '+' || e.key === '=') { e.preventDefault(); radarZoom(-1); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); radarZoom(1); }
       else if (e.key === '0') { e.preventDefault(); radarCentre = null; renderMap(); }
-      else if (e.key === 'Escape' && (radarSheet !== null || radarSelected !== null || markSel !== null || markPlacing)) { e.preventDefault(); radarSheet = null; radarSelected = null; markSel = null; markPlacing = false; renderMap(); }
+      else if (e.key === 'Escape' && (radarSheet !== null || radarSelected !== null || markSel !== null || markPlacing || pickedPoint)) { e.preventDefault(); radarSheet = null; radarSelected = null; markSel = null; markPlacing = false; pickedPoint = null; renderMap(); }
     });
   }
 
@@ -4224,6 +4265,7 @@
     if (replaying) tripReplayBarEl(stage, G);
     if (sel && !radarDrawer && !radarSheet && !replaying) radarCard(stage, sel, G);
     else if (markSel && !radarDrawer && !radarSheet && !replaying && !markPlacing) markCardEl(stage, G, markSel);
+    else if (pickedPoint && !radarDrawer && !radarSheet && !replaying && !markPlacing) coordCardEl(stage, G);
     radarDrawerEl(stage, withFix, noFix, G);
     if (radarSheet) radarSheetEl(stage, mapInfo, G);
   }
