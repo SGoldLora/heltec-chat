@@ -45,6 +45,16 @@
   /* The Board health panel: a sheet over the page, above the Everyone sheet (50) and the menu (40), below the map (60). */
   #healthOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; align-items: flex-end; justify-content: center; }
   #healthOverlay.open { display: flex; }
+  #gpsOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 56; align-items: flex-end; justify-content: center; }
+  #gpsOverlay.open { display: flex; }
+  #gpsPanel { background: #1a1a1a; width: 100%; max-width: 760px; max-height: 88vh; overflow: auto; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #gpsHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #2a2a2a; }
+  #gpsHeader button { background: #333; color: #eee; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; min-height: 36px; }
+  #gpsOptions { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 0; }
+  #gpsOptions button { text-align: left; background: #262626; color: #eee; border: 2px solid #3a3a3a; border-radius: 10px; padding: 10px 12px; font-size: 14px; min-height: 48px; }
+  #gpsOptions button[aria-pressed="true"] { border-color: #4fc3f7; background: #1f3340; }
+  #gpsOptions .gpsAbout { display: block; font-size: 12px; color: #b0b0b0; margin-top: 3px; }
+  #gpsNote { font-size: 12px; color: #9a9a9a; padding: 10px 14px 14px; }
   #healthPanel { background: #1a1a1a; width: 100%; max-width: 760px; max-height: 88vh; border-radius: 14px 14px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
   #healthHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #2a2a2a; }
   .healthBtns { display: flex; gap: 6px; }
@@ -435,6 +445,8 @@
     <button id="signalHistoryToggle" class="iconBtn" role="menuitem" title="Signal history for this conversation" aria-label="Signal history for this conversation"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" stroke="#9e9e9e" stroke-width="2"/><polyline points="6.5,16 10.5,10.5 14,13.5 20,6" stroke="#4fc3f7" stroke-width="2.3"/><circle cx="6.5" cy="16" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="10.5" cy="10.5" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="14" cy="13.5" r="1.5" fill="#4fc3f7" stroke="none"/><circle cx="20" cy="6" r="1.5" fill="#4fc3f7" stroke="none"/></svg><span class="menuLabel">Signal history</span></button>
     <button id="healthBtn" class="iconBtn" role="menuitem" title="Board health: what this board is doing, for finding problems" aria-label="Board health: what this board is doing, for finding problems"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke="#e0e0e0" stroke-width="2"/><path d="M12 7.5v9M7.5 12h9" stroke="#66bb6a" stroke-width="2.4"/></svg><span class="menuLabel">Board health</span></button>
     <button id="wifiMenuBtn" role="menuitem" style="display:none" title="Turn the board&rsquo;s WiFi on or off. Off saves battery; Bluetooth keeps working."><span class="menuEmoji" aria-hidden="true">📶</span><span class="menuLabel">WiFi</span></button>
+    <button id="gpsMenuBtn" role="menuitem" title="Choose where this board gets its position: its own GPS, the phone, automatic, or none"><span class="menuEmoji" aria-hidden="true">🛰️</span><span class="menuLabel">GPS</span></button>
+    <button id="cpuMenuBtn" role="menuitem" title="Slow the board&rsquo;s processor after 20 quiet minutes to save battery; any request or button press brings full speed back at once"><span class="menuEmoji" aria-hidden="true">🐢</span><span class="menuLabel">Slow when quiet: off</span></button>
     <button id="packetToggleBtn" class="iconBtn" role="menuitem" title="Packets: the raw data this device is sending and hearing" aria-label="Packets: the raw data this device is sending and hearing"><span class="menuEmoji" aria-hidden="true">🎁</span><span class="menuLabel">Packets</span></button>
     <button id="hapticBtn" role="menuitem" title="A small vibration when you tap a button (on phones that allow it)"><span class="menuEmoji" aria-hidden="true">📳</span><span class="menuLabel">Touch feedback</span></button>
     <button id="autoPointsBtn" role="menuitem" title="When someone sends a meet point, car point or place, put it on your map by themselves (each message has an Undo)"><span class="menuEmoji" aria-hidden="true">&#x1F6A9;</span><span class="menuLabel">Add shared points automatically</span></button>
@@ -517,6 +529,13 @@
     <div id="rollCallBox"></div>
     <div id="rosterList"></div>
     <a id="rosterTrackLink" href="/track.gpx" download="track.gpx">🗺 Download Track (GPX)</a>
+  </div>
+</div>
+<div id="gpsOverlay" role="dialog" aria-modal="true" aria-labelledby="gpsTitle">
+  <div id="gpsPanel">
+    <div id="gpsHeader"><span id="gpsTitle">Where this board gets its position</span><button id="gpsCloseBtn" type="button">Close</button></div>
+    <div id="gpsOptions"></div>
+    <div id="gpsNote"></div>
   </div>
 </div>
 <div id="healthOverlay" role="dialog" aria-modal="true" aria-labelledby="healthTitle">
@@ -617,6 +636,55 @@
     if (b) b.textContent = bleDevice ? 'Connect again' : 'Connect by Bluetooth';
     wifiPowerUpdate();
   }
+  // GPS source (menu item "GPS: ..."): the board's own module, the phone's location, automatic, or none. The board remembers the choice.
+  // Slow when quiet (menu item): the board drops its processor speed after 20 minutes with no phone request and no button press (WiFi off only).
+  let cpuSaveNow = false;
+  function cpuMenuUpdate() {
+    const b = document.getElementById('cpuMenuBtn'); if (!b) return;
+    const lab = b.querySelector('.menuLabel'); if (lab) lab.textContent = 'Slow when quiet: ' + (cpuSaveNow ? 'on' : 'off');
+    b.setAttribute('aria-pressed', cpuSaveNow ? 'true' : 'false'); b.classList.toggle('active', cpuSaveNow);
+  }
+  function cpuMenuTap() { cpuSaveNow = !cpuSaveNow; cpuMenuUpdate(); wsSend({action: 'setCpuSave', on: cpuSaveNow}); }
+  let gpsModeNow = 0, gpsSwitchOk = false;
+  const GPS_MODES = [
+    {name: 'Board GPS', short: 'board', about: 'The board\u2019s own GPS module, if it has one. Most independent; uses the most battery.'},
+    {name: 'Phone GPS', short: 'phone', about: 'This phone\u2019s location. The board\u2019s GPS module is switched off (saves roughly 20\u201330 mA, about a third of a board\u2019s draw; typical figure). The board has no position of its own when the phone is not connected.'},
+    {name: 'Auto', short: 'auto', about: 'The phone\u2019s location while it is connected and sending one; otherwise the board switches its own GPS on.'},
+    {name: 'GPS off', short: 'off', about: 'No position at all. Saves the most. The others will not see where this board is.'}
+  ];
+  function gpsMenuUpdate() {
+    const b = document.getElementById('gpsMenuBtn');
+    if (!b) return;
+    const lab = b.querySelector('.menuLabel');
+    if (lab) lab.textContent = 'GPS: ' + GPS_MODES[gpsModeNow].short;
+    const box = document.getElementById('gpsOptions');
+    if (box) {
+      box.textContent = '';
+      GPS_MODES.forEach((m, i) => {
+        const o = document.createElement('button'); o.type = 'button'; o.dataset.mode = String(i);
+        o.setAttribute('aria-pressed', i === gpsModeNow ? 'true' : 'false');
+        const t = document.createElement('span'); t.textContent = m.name + (i === gpsModeNow ? '  \u2713' : ''); o.appendChild(t);
+        const ab = document.createElement('span'); ab.className = 'gpsAbout'; ab.textContent = m.about; o.appendChild(ab);
+        o.onclick = () => gpsChoose(i);
+        box.appendChild(o);
+      });
+    }
+    const note = document.getElementById('gpsNote');
+    if (note) note.textContent = (gpsSwitchOk ? '' : 'This board cannot switch its GPS module off, so the choice only decides which position is used (no battery saving). ')
+      + 'Phone GPS works while this page is open with the screen on and location allowed (a limit of the browser). Over WiFi the page must be opened from a secure (https) address to share its location.';
+  }
+  function gpsChoose(i) {
+    if (!ws || ws.readyState !== 1) return;
+    ws.send(JSON.stringify({action: 'setGpsMode', mode: i}));
+    gpsModeNow = i; gpsMenuUpdate();
+    if ((i === 1 || i === 2) && !browserLocTimer) enableBrowserLocation(true); // the phone has to share its location (asks permission once)
+  }
+  function gpsOverlayOpen(open) {
+    const o = document.getElementById('gpsOverlay');
+    o.classList.toggle('open', open);
+    if (open) { gpsMenuUpdate(); document.getElementById('gpsCloseBtn').focus(); } else moreBtn.focus();
+  }
+
   // WiFi on/off for the board (menu item "WiFi: ..."). The board restarts to apply it, and the choice is remembered on the board.
   let wifiOffNow = false, wifiBuilt = false, wifiPowerBusy = false;
   function wifiPowerUpdate() {
@@ -5663,10 +5731,14 @@
       return;
     }
 
+    if (data.type === 'cpuSave') { cpuSaveNow = !!data.on; cpuMenuUpdate(); return; }
+    if (data.type === 'gpsMode') { if (typeof data.mode === 'number' && data.mode >= 0 && data.mode <= 3) { gpsModeNow = data.mode; gpsMenuUpdate(); } return; }
+
     if (data.type === 'wifiSet') { wifiOffNow = !!data.off; wifiPowerBusy = true; wifiPowerUpdate(); return; }
 
     if (data.type === 'config') {
       bleGotConfig = true;
+      gpsModeNow = (typeof data.gpsMode === 'number' && data.gpsMode >= 0 && data.gpsMode <= 3) ? data.gpsMode : 0; gpsSwitchOk = !!data.gpsSwitch; gpsMenuUpdate(); cpuSaveNow = !!data.cpuSave; cpuMenuUpdate();
       wifiOffNow = !!data.wifiOff; wifiBuilt = !!data.bleBuilt; wifiPowerBusy = false; wifiPowerUpdate();
       peers = data.peers;
       peers.forEach(p => { p.gpsAgeStamp = Date.now(); });
@@ -6183,6 +6255,11 @@
   document.getElementById('healthCloseBtn').onclick = closeHealth;
   document.getElementById('healthRefreshBtn').onclick = loadHealth;
   document.getElementById('wifiMenuBtn').addEventListener('click', wifiPowerTap);
+  document.getElementById('gpsMenuBtn').addEventListener('click', () => gpsOverlayOpen(true));
+  document.getElementById('cpuMenuBtn').addEventListener('click', cpuMenuTap);
+  document.getElementById('gpsCloseBtn').onclick = () => gpsOverlayOpen(false);
+  document.getElementById('gpsOverlay').onclick = (e) => { if (e.target.id === 'gpsOverlay') gpsOverlayOpen(false); };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('gpsOverlay').classList.contains('open')) gpsOverlayOpen(false); });
   healthCopyBtn.onclick = copyHealth;
   document.getElementById('healthCopyCloseBtn').onclick = hideHealthCopyFallback;
   healthAutoEl.onchange = () => {
