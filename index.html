@@ -2260,7 +2260,7 @@
     // make a map
     const form = mk('div', 'mapForm'); form.appendChild(mk('div', 'mapFormTitle', 'Make a map'));
     const field = (label, control) => { const l = mk('label'); l.appendChild(mk('span', '', label)); l.appendChild(control); form.appendChild(l); return control; };
-    const sel = (id, options, current, onchange) => { const s = mk('select'); s.id = id; options.forEach(([v, t]) => { const o = mk('option', '', t); o.value = String(v); s.appendChild(o); }); s.value = String(current); s.onchange = () => { onchange(s.value); }; return s; };
+    const sel = (id, options, current, onchange) => { const s = mk('select'); s.id = id; options.forEach(([v, t]) => { const o = mk('option', '', t); o.value = String(v); s.appendChild(o); }); s.value = String(current); s.onchange = () => { const v = s.value; s.blur(); onchange(v); }; return s; }; // let go of the list first: the page does not redraw underneath a list someone is using, so on a phone (where it keeps focus) the new choices never appeared
     const nameIn = mk('input'); nameIn.id = 'mapName'; nameIn.maxLength = MAP_NAME_MAX; nameIn.placeholder = 'e.g. Home'; nameIn.value = mapForm.name; nameIn.oninput = () => { mapForm.name = nameIn.value; };
     field('Name', nameIn);
     field('Centre', sel('mapCentre', [['me', 'My position'], ['typed', 'Typed coordinates']], mapForm.centre, v => { mapForm.centre = v; renderMap(); }));
@@ -2271,6 +2271,7 @@
     field('Detail', sel('mapDetail', [['all', 'Everything: streets, trails, water'], ['main', 'Main roads, trails and water'], ['basic', 'Main roads and water only']], mapForm.detail, v => { mapForm.detail = v; if (!MAP_RADII[v].includes(mapForm.radius)) mapForm.radius = MAP_RADII[v][MAP_RADII[v].length - 1]; renderMap(); }));
     field('Radius', sel('mapRadius', MAP_RADII[mapForm.detail].map(r => [r, r + ' miles (' + 2 * r + ' \u00D7 ' + 2 * r + ' mi)']), mapForm.radius, v => { mapForm.radius = parseInt(v, 10); }));
     field('Size limit', sel('mapBudget', [[200, '200 KB'], [400, '400 KB'], [600, '600 KB']], mapForm.budgetKb, v => { mapForm.budgetKb = parseInt(v, 10); }));
+    if (mapForm.detail !== 'basic') { const hint = mk('div', 'mapSub', 'Want a bigger area (up to 100 miles)? Set Detail to \u201CMain roads and water only\u201D and the larger radii appear here.'); hint.id = 'mapBigHint'; form.appendChild(hint); }
     const b = mapBuildState, running = b.phase === 'running';
     const go = mk('button', 'mapGo', running ? 'Working\u2026' : 'Build map'); go.id = 'mapBuildBtn'; go.disabled = running; go.onclick = mapStartBuild; form.appendChild(go);
     if (running) {
