@@ -21,11 +21,13 @@
   #topBar .peerArrow { color: #6ba6e8; font-size: 22px; font-weight: 700; line-height: 1; padding: 0 4px; }
   #topBar .wifiLabel { font-size: 11px; opacity: 0.6; }
   #topBar .fwLabel { font-size: 10px; opacity: 0.4; }
+  #topBar .wifiRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #topBar .headCompass { font-size: 11px; font-weight: 700; color: #cfd8dc; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; } #topBar .headCompass svg { display: block; }
   #topBar .headerButtons { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
   #soundToggle, #switchToHotspotBtn { background: #333; border: none; color: #eee; border-radius: 6px; padding: 6px 10px; font-size: 14px; }
   /* "Maximize messaging": the extra information above and below the messages is hidden so they get the room. Warnings, the contact
      chips, the status line when it has something to say, the reply bar and the input all stay. The hidden lines keep updating. */
-  body.maxMsg .wifiLabel, body.maxMsg #myLocLabel, body.maxMsg #fwLabel, body.maxMsg #batteryLabel,
+  body.maxMsg .wifiRow, body.maxMsg #myLocLabel, body.maxMsg #fwLabel, body.maxMsg #batteryLabel,
   body.maxMsg #chipsLabel, body.maxMsg #peerConnectionLabel, body.maxMsg #lastSeenLabel, body.maxMsg #userConnectedLabel, body.maxMsg #peerLocationLabel { display: none !important; }
   body.maxMsg #statusLine:empty { display: none; }
   body.maxMsg #chatColumnHeaders:not(.hasNote) { display: none; }
@@ -45,6 +47,16 @@
   /* The Board health panel: a sheet over the page, above the Everyone sheet (50) and the menu (40), below the map (60). */
   #healthOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; align-items: flex-end; justify-content: center; }
   #healthOverlay.open { display: flex; }
+  #battOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 56; align-items: flex-end; justify-content: center; }
+  #battOverlay.open { display: flex; }
+  #battPanel { background: #1a1a1a; width: 100%; max-width: 760px; max-height: 92vh; overflow: auto; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #battHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #2a2a2a; }
+  #battHeader button { background: #333; color: #eee; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; min-height: 36px; }
+  #battRanges { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 0; }
+  #battRanges button { background: #262626; color: #eee; border: 2px solid #3a3a3a; border-radius: 10px; padding: 8px 12px; font-size: 14px; min-height: 40px; }
+  #battRanges button[aria-pressed="true"] { border-color: #4fc3f7; background: #1f3340; }
+  #battGraph { padding: 10px 8px 0; } #battGraph svg { width: 100%; height: auto; display: block; }
+  #battNote { padding: 6px 14px 14px; font-size: 12px; color: #aaa; line-height: 1.4; }
   #gpsOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 56; align-items: flex-end; justify-content: center; }
   #gpsOverlay.open { display: flex; }
   #gpsPanel { background: #1a1a1a; width: 100%; max-width: 760px; max-height: 88vh; overflow: auto; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -158,16 +170,16 @@
   #mapPanel { position: relative; background: #1a1a1a; width: 100%; max-width: 480px; max-height: 92vh; border-radius: 14px 14px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
   #mapHeader { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #2a2a2a; }
   #mapTabs { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
-  .mapTab { background: #333; border: none; color: #eee; border-radius: 6px; padding: 5px 9px; font-size: 12px; white-space: nowrap; }
+  .mapTab { background: #333; border: none; color: #eee; border-radius: 6px; padding: 3px 9px; font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
   .mapTab.active { background: #2b6cb0; }
-  #mapCloseBtn { background: none; border: none; color: #eee; font-size: 16px; padding: 4px 8px; }
+  #mapCloseBtn { background: none; border: none; color: #eee; font-size: 26px; line-height: 1; padding: 6px 12px; min-width: 48px; min-height: 48px; }
   #mapBody { overflow-y: auto; padding: 8px 12px 12px 12px; }
   #mapGearMenu { display: none; position: absolute; top: 48px; right: 8px; z-index: 60; min-width: 200px; background: #262626; border: 1px solid #3a3a3a; border-radius: 10px; padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.55); }
   #mapGearMenu.open { display: block; }
   .mapGearItem { display: block; width: 100%; text-align: left; background: none; border: none; color: #eee; font-size: 15px; padding: 12px 14px; border-radius: 8px; min-height: 44px; }
   .mapGearItem.active, .mapGearItem[aria-pressed="true"] { background: #2b6cb0; font-weight: 700; }
   #mapGearBtn.active { color: #4fc3f7; }
-  .mapHdrBtn { background: none; border: none; color: #eee; padding: 6px 8px; display: flex; align-items: center; }
+  .mapHdrBtn { background: none; border: none; color: #eee; padding: 10px 12px; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; } .mapHdrBtn svg { width: 24px; height: 24px; }
   /* Opened in its own browser tab (?view=map): the panel fills the whole window and the picture is as big as fits. */
   body.mapFull #mapOverlay { background: #1a1a1a; align-items: stretch; }
   body.mapFull #mapPanel { max-width: none; width: 100%; max-height: none; height: 100%; border-radius: 0; }
@@ -181,7 +193,7 @@
   body.mapFull #mapPanel.radarFull { max-width: none; }
   #mapPanel.radarFull #mapHeader { padding: 6px 8px; gap: 4px; }
   #mapPanel.radarFull #mapTabs { flex-wrap: nowrap; gap: 4px; }
-  #mapPanel.radarFull .mapTab { flex: 1 1 auto; min-width: 0; min-height: 40px; padding: 4px 3px; font-size: 11px; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+  #mapPanel.radarFull .mapTab { flex: 0 0 auto; min-width: 0; min-height: 28px; padding: 3px 9px; font-size: 11px; text-align: center; overflow: hidden; text-overflow: ellipsis; }
   #mapBody.radarBody { padding: 0; flex: 1; min-height: 0; overflow: hidden; display: flex; }
   .radarStage { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; outline: none; --fl-bg: rgba(26,26,26,0.94); --fl-ink: #eeeeee; --fl-line: #3f3f3f; --fl-sub: #bbbbbb; --fl-accent: #2b6cb0; --fl-on: #4fc3f7; --sheet-bg: #1a1a1a; --sheet-line: #343434; }
   .radarStage.radarLight { --fl-bg: rgba(255,255,255,0.95); --fl-ink: #161616; --fl-line: #a5a5a5; --fl-sub: #444444; --fl-accent: #1d5fa8; --fl-on: #0b5ea8; --sheet-bg: #fbf9f4; --sheet-line: #c9c4b8; }
@@ -314,8 +326,8 @@
   .radarAlways { display: flex; align-items: center; gap: 10px; } .radarAlwaysTick { color: #43a047; font-size: 18px; font-weight: 900; width: 22px; text-align: center; }
   .radarHeadHud { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; padding: 3px 12px 3px 4px; border-radius: 30px; background: rgba(16,16,16,0.82); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; }
   .radarHeadHud .rcText { display: flex; flex-direction: column; line-height: 1.1; }
-  .radarHeadHud .rcDir { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; } .radarHeadHud .rcDeg { font-size: 14px; font-weight: 600; } .radarHeadHud .rcBy { font-size: 10px; color: #b8b8b8; }
-  .radarStage.hasHeadHud .radarBanners { top: 92px; }
+  .radarHeadHud .rcDir { font-size: 28px; font-weight: 800; letter-spacing: 0.5px; } .radarHeadHud .rcDeg { font-size: 22px; font-weight: 600; } .radarHeadHud .rcBy { font-size: 13px; color: #b8b8b8; }
+  .radarStage.hasHeadHud .radarBanners { top: 126px; }
   .radarBanners { position: absolute; top: 34px; left: 70px; right: 70px; z-index: 3; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
   .radarBanners > * { pointer-events: auto; }
   .radarStage .radarBanners .mapWarn { position: static; }
@@ -439,7 +451,7 @@
       <span class="peerArrow">→</span>
       <span class="title" id="topPeerName"></span>
     </div>
-    <span class="wifiLabel" id="wifiLabel"></span>
+    <div class="wifiRow" id="wifiRow"><span class="wifiLabel" id="wifiLabel"></span><span class="headCompass" id="headCompass" style="display:none"></span></div>
     <span class="fwLabel" id="myLocLabel"></span>
     <span class="fwLabel" id="fwLabel"></span>
     <span class="fwLabel" id="batteryLabel"></span>
@@ -457,6 +469,7 @@
     <button id="wifiMenuBtn" role="menuitem" style="display:none" title="Turn the board&rsquo;s WiFi on or off. Off saves battery; Bluetooth keeps working."><span class="menuEmoji" aria-hidden="true">📶</span><span class="menuLabel">WiFi</span></button>
     <button id="gpsMenuBtn" role="menuitem" title="Choose where this board gets its position: its own GPS, the phone, automatic, or none"><span class="menuEmoji" aria-hidden="true">🛰️</span><span class="menuLabel">GPS</span></button>
     <button id="cpuMenuBtn" role="menuitem" title="Slow the board&rsquo;s processor after 20 quiet minutes to save battery; any request or button press brings full speed back at once"><span class="menuEmoji" aria-hidden="true">🐢</span><span class="menuLabel">Slow when quiet: off</span></button>
+    <button id="battMenuBtn" role="menuitem" title="A graph of the board&rsquo;s battery voltage over the last 4 to 72 hours"><span class="menuEmoji" aria-hidden="true">🔋</span><span class="menuLabel">Battery history</span></button>
     <button id="packetToggleBtn" class="iconBtn" role="menuitem" title="Packets: the raw data this device is sending and hearing" aria-label="Packets: the raw data this device is sending and hearing"><span class="menuEmoji" aria-hidden="true">🎁</span><span class="menuLabel">Packets</span></button>
     <button id="hapticBtn" role="menuitem" title="A small vibration when you tap a button (on phones that allow it)"><span class="menuEmoji" aria-hidden="true">📳</span><span class="menuLabel">Touch feedback</span></button>
     <button id="autoPointsBtn" role="menuitem" title="When someone sends a meet point, car point or place, put it on your map by themselves (each message has an Undo)"><span class="menuEmoji" aria-hidden="true">&#x1F6A9;</span><span class="menuLabel">Add shared points automatically</span></button>
@@ -492,7 +505,7 @@
 <div id="mapOverlay">
   <div id="mapPanel">
     <div id="mapHeader">
-      <div id="mapTabs"><button id="mapTabRadar" class="mapTab active">Map</button><button id="mapTabCoverage" class="mapTab">Test Coverage</button></div>
+      <div id="mapTabs"><button id="mapTabRadar" class="mapTab active">Map</button></div>
       <button id="mapGearBtn" class="mapHdrBtn" aria-label="Settings: GPS configuration, map files, layers and views" title="Settings: GPS configuration, map files, layers and views" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button id="mapFullscreenBtn" class="mapHdrBtn" style="display:none" aria-label="Full screen" title="Full screen"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button id="mapNewTabBtn" class="mapHdrBtn" aria-label="Open in a new tab, full size" title="Open in a new tab, full size"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></button>
@@ -501,6 +514,7 @@
     <div id="mapGearMenu" role="menu" aria-label="Map settings">
       <button id="mapTabGps" class="mapGearItem" role="menuitem">GPS configuration</button>
       <button id="mapTabMaps" class="mapGearItem" role="menuitem">Map files</button>
+      <button id="mapTabCoverage" class="mapGearItem" role="menuitem">Test Coverage</button>
       <button id="radarLayersBtn" class="mapGearItem" role="menuitem" aria-pressed="false" aria-label="Layers and views" title="Layers and views: the map view and what is drawn on it">Layers and views</button>
     </div>
     <div id="mapBody"></div>
@@ -545,6 +559,14 @@
     <div id="rollCallBox"></div>
     <div id="rosterList"></div>
     <a id="rosterTrackLink" href="/track.gpx" download="track.gpx">🗺 Download Track (GPX)</a>
+  </div>
+</div>
+<div id="battOverlay" role="dialog" aria-modal="true" aria-labelledby="battTitle">
+  <div id="battPanel">
+    <div id="battHeader"><span id="battTitle">Battery history</span><button id="battCloseBtn" type="button">Close</button></div>
+    <div id="battRanges" role="group" aria-label="How far back to show"></div>
+    <div id="battGraph"></div>
+    <div id="battNote" role="status"></div>
   </div>
 </div>
 <div id="gpsOverlay" role="dialog" aria-modal="true" aria-labelledby="gpsTitle">
@@ -662,7 +684,7 @@
     b.setAttribute('aria-pressed', cpuSaveNow ? 'true' : 'false'); b.classList.toggle('active', cpuSaveNow);
   }
   function cpuMenuTap() { cpuSaveNow = !cpuSaveNow; cpuMenuUpdate(); wsSend({action: 'setCpuSave', on: cpuSaveNow}); }
-  let gpsModeNow = 0, gpsSwitchOk = false;
+  let gpsModeNow = 2, gpsSwitchOk = false;
   const GPS_MODES = [
     {name: 'Board GPS', short: 'board', about: 'The board\u2019s own GPS module, if it has one. Most independent; uses the most battery.'},
     {name: 'Phone GPS', short: 'phone', about: 'This phone\u2019s location. The board\u2019s GPS module is switched off (saves roughly 20\u201330 mA, about a third of a board\u2019s draw; typical figure). The board has no position of its own when the phone is not connected.'},
@@ -688,6 +710,7 @@
     }
     const note = document.getElementById('gpsNote');
     if (note) note.textContent = (gpsSwitchOk ? '' : 'This board cannot switch its GPS module off, so the choice only decides which position is used (no battery saving). ')
+      + ((gpsModeNow === 1 || gpsModeNow === 2) ? (browserLocTimer === null ? 'Phone location is NOT being shared yet: ' + (window.isSecureContext ? 'tap Phone again and allow location when asked. ' : 'this page is not on a secure (https) address, so the browser refuses. ') : phoneLocNote ? 'Phone location problem: ' + phoneLocNote + '. ' : phoneLocOkAt ? 'Phone location shared ' + Math.round((Date.now() - phoneLocOkAt) / 1000) + ' s ago. ' : 'Waiting for the phone\'s first location reading. ') : '')
       + 'Phone GPS works while this page is open with the screen on and location allowed (a limit of the browser). Over WiFi the page must be opened from a secure (https) address to share its location.';
   }
   function gpsChoose(i) {
@@ -695,6 +718,34 @@
     ws.send(JSON.stringify({action: 'setGpsMode', mode: i}));
     gpsModeNow = i; gpsMenuUpdate();
     if ((i === 1 || i === 2) && !browserLocTimer) enableBrowserLocation(true); // the phone has to share its location (asks permission once)
+  }
+  // ---- battery history: the board keeps a voltage reading every 10 minutes (72 hours); this draws the part you ask for ----
+  let battHistV = null, battHours = 24, battWaitTimer = null;
+  function battDraw() {
+    const g = document.getElementById('battGraph'), note = document.getElementById('battNote'); if (!g) return;
+    document.querySelectorAll('#battRanges button').forEach(b => b.setAttribute('aria-pressed', String(+b.getAttribute('data-h') === battHours)));
+    if (battHistV === null) { g.textContent = ''; note.textContent = 'Asking the board for its battery history\u2026'; return; }
+    const per = 6, want = battHours * per, all = battHistV.map(v => v / 100), v = all.slice(-want);
+    if (v.length < 2) { g.textContent = ''; note.textContent = 'The board has not recorded enough yet. It takes a reading every 10 minutes while it is on a battery; check back soon.'; return; }
+    const W = 360, H = 200, L = 40, R = 8, T = 10, B = 28, pw = W - L - R, ph = H - T - B;
+    let lo = Math.min(...v), hi = Math.max(...v); lo = Math.floor((lo - 0.02) * 10) / 10; hi = Math.ceil((hi + 0.02) * 10) / 10; if (hi - lo < 0.2) hi = lo + 0.2;
+    const x = (i) => L + pw * (1 - (v.length - 1 - i) / (want - 1)), y = (val) => T + ph * (1 - (val - lo) / (hi - lo));
+    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Battery voltage over the last ' + battHours + ' hours, from ' + v[0].toFixed(2) + ' to ' + v[v.length - 1].toFixed(2) + ' volts">';
+    const ys = 4;
+    for (let k = 0; k <= ys; k++) { const val = lo + (hi - lo) * k / ys; s += '<line x1="' + L + '" y1="' + y(val).toFixed(1) + '" x2="' + (W - R) + '" y2="' + y(val).toFixed(1) + '" stroke="#333"/><text x="' + (L - 4) + '" y="' + (y(val) + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="#aaa">' + val.toFixed(2) + '</text>'; }
+    const step = battHours <= 12 ? 2 : battHours <= 24 ? 4 : battHours <= 48 ? 12 : 12;
+    for (let h = 0; h <= battHours; h += step) { const xx = L + pw * (1 - h / battHours); s += '<line x1="' + xx.toFixed(1) + '" y1="' + T + '" x2="' + xx.toFixed(1) + '" y2="' + (T + ph) + '" stroke="#2a2a2a"/><text x="' + xx.toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="9" fill="#aaa">' + (h === 0 ? 'now' : '-' + h + 'h') + '</text>'; }
+    s += '<text x="' + (L + pw / 2) + '" y="' + (H - 1) + '" text-anchor="middle" font-size="9" fill="#888">hours ago</text>';
+    s += '<polyline fill="none" stroke="#4fc3f7" stroke-width="2" stroke-linejoin="round" points="' + v.map((val, i) => x(i).toFixed(1) + ',' + y(val).toFixed(1)).join(' ') + '"/></svg>';
+    g.innerHTML = s;
+    const have = Math.round(v.length / per * 10) / 10;
+    note.textContent = 'Now ' + v[v.length - 1].toFixed(2) + ' V \u00B7 lowest ' + Math.min(...v).toFixed(2) + ' V \u00B7 highest ' + Math.max(...v).toFixed(2) + ' V' + (v.length < want ? '. Only ' + have + ' hours have been recorded so far.' : '.') + ' One reading every 10 minutes, kept by the board (saved hourly, so a restart can lose up to an hour).';
+  }
+  function battAsk() { battHistV = null; battDraw(); if (ws && ws.readyState === 1) ws.send(JSON.stringify({action: 'getBattHist'})); else document.getElementById('battNote').textContent = 'Not connected to the board.'; }
+  function battOverlayOpen(open) {
+    const o = document.getElementById('battOverlay');
+    o.classList.toggle('open', open);
+    if (open) { const r = document.getElementById('battRanges'); if (!r.firstChild) [4, 8, 12, 24, 48, 72].forEach(h => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-h', h); b.textContent = h + ' h'; b.onclick = () => { battHours = h; battDraw(); }; r.appendChild(b); }); battAsk(); document.getElementById('battCloseBtn').focus(); } else moreBtn.focus();
   }
   function gpsOverlayOpen(open) {
     const o = document.getElementById('gpsOverlay');
@@ -940,7 +991,8 @@
   let selfLocAgeSec = 0;       // how old it was when the board last told us
   let selfLocStamp = 0;        // when (this browser's clock) it told us — current age = that + time since
   let browserLocTimer = null;  // polling timer, only while "use this device's location" is on
-  let browserLocResumeTried = false;
+  let browserLocResumeTried = false, phoneLocAutoTried = false;
+  let phoneLocNote = '', phoneLocOkAt = 0; // what the phone's location service last did, shown in the GPS menu
   const STALE_LOCATION_SEC = 60;         // older than this gets labeled with its age instead of shown as current
   const BROWSER_LOCATION_POLL_MS = 30000;
 
@@ -2385,7 +2437,7 @@
     document.getElementById('mapTabCoverage').classList.toggle('active', tab === 'coverage');
     document.getElementById('mapTabMaps').classList.toggle('active', tab === 'maps');
     document.getElementById('mapTabGps').classList.toggle('active', tab === 'gps');
-    { const gb = document.getElementById('mapGearBtn'); if (gb) gb.classList.toggle('active', tab === 'gps' || tab === 'maps' || radarSheet === 'layers'); gearMenuOpen(false); }
+    { const gb = document.getElementById('mapGearBtn'); if (gb) gb.classList.toggle('active', tab === 'gps' || tab === 'maps' || tab === 'coverage' || radarSheet === 'layers'); gearMenuOpen(false); }
     document.getElementById('gpsPane').style.display = tab === 'gps' ? '' : 'none'; // the GPS tab shows the My location controls; the others draw into the body
     document.getElementById('mapBody').style.display = tab === 'gps' ? 'none' : '';
     if (tab === 'maps') refreshMapList();
@@ -3742,7 +3794,8 @@
     for (const k of ['rings', 'trails']) if (sv && sv[k] === false) radarOpts[k] = false;
     for (const k of ['signal', 'headUp', 'arrowHeading']) if (sv && sv[k] === true) radarOpts[k] = true;
   } catch (e) { /* no saved choices */ }
-  function radarSave() { try { localStorage.setItem(RADAR_OPTS_KEY, JSON.stringify(radarOpts)); } catch (e) { /* not saved */ } }
+  radarOpts.arrowHeading = !radarOpts.headUp; // the two map modes: north-up map with the blue arrow turning to your heading (default), or heading-up: the map turns and the arrow stays pointing up
+  function radarSave() { radarOpts.arrowHeading = !radarOpts.headUp; try { localStorage.setItem(RADAR_OPTS_KEY, JSON.stringify(radarOpts)); } catch (e) { /* not saved */ } }
   let radarCentre = null;          // {lat, lon} the view is centred on after dragging or "centre here"; null = centred on you
   let radarSelected = null;        // the id of the person whose details are showing
   let radarDrawer = false;         // the people list is pulled up
@@ -3763,18 +3816,40 @@
     if (h === null) return;
     compassHeading = compassHeading === null ? h : (compassHeading + angleDiff(h, compassHeading) * 0.35 + 360) % 360; // smoothed
     compassAt = Date.now();
-    if (!mapIsOpen() || mapTab !== 'radar') return;
+    headCompassUpdate();
+    if (!mapIsOpen() || mapTab !== 'radar') { compassSeen = true; return; }
     if (!compassSeen) { compassSeen = true; renderMap(); return; } // now the option can be offered
     if ((radarOpts.headUp || radarOpts.arrowHeading || !selfMotion()) && !radarDragging && (compassDrawn === null || Math.abs(angleDiff(compassHeading, compassDrawn)) >= 3) && Date.now() - compassDrawnAt > (radarOpts.headUp ? 200 : 400)) renderMap(); // the arrow follows the phone when you stand still
   }
+  // The small compass in the page header (direction and degrees, no extra line): shown while a heading is known, from the GPS course while you move or else the phone's compass.
+  let headCompassText = '';
+  function headCompassUpdate() {
+    const el = document.getElementById('headCompass'); if (!el) return;
+    let deg = null;
+    try { const mo = selfMotion(); if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) deg = mo.headingDeg; } catch (e) { /* no motion yet */ }
+    if (deg === null && compassSupported() && compassFresh()) deg = compassHeading;
+    if (deg === null) { if (headCompassText !== '') { headCompassText = ''; el.style.display = 'none'; el.textContent = ''; } return; }
+    const d = Math.round(((deg % 360) + 360) % 360) % 360, txt = compassDirection(d) + ' ' + d + '\u00B0';
+    if (txt === headCompassText) return;
+    headCompassText = txt;
+    el.style.display = '';
+    el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'Heading ' + compassDirection(d) + ', ' + d + ' degrees');
+    el.innerHTML = '<svg viewBox="-10 -10 20 20" width="15" height="15" aria-hidden="true"><circle r="9" fill="#1e1e1e" stroke="#8a8a8a" stroke-width="1.2"/><g transform="rotate(' + (-d) + ')"><text y="-3.2" text-anchor="middle" font-size="6" font-weight="800" fill="#ff5252">N</text></g><line x1="0" y1="3" x2="0" y2="-6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><polygon points="0,-9 -2.4,-5 2.4,-5" fill="#e53935"/></svg><span></span>';
+    el.lastChild.textContent = txt;
+  }
+  setInterval(headCompassUpdate, 2000); // lets the heading disappear when the compass goes quiet, and follows the GPS course
+  setTimeout(() => { if (compassSupported() && !compassNeedsPermission()) compassStart(); }, 0); // Android and desktop: start listening at once (iPhones ask permission from the map's compass first)
+  let compassKeep = false; // once the compass is on it stays on (the header uses it), except while the page is hidden
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (compassListening) { compassListening = false; window.removeEventListener('deviceorientationabsolute', onCompass, true); window.removeEventListener('deviceorientation', onCompass, true); } } else if (compassKeep) compassStart(); });
   function compassStart() {
     if (compassListening || !compassSupported()) return;
+    compassKeep = true;
     compassListening = true;
     window.addEventListener('deviceorientationabsolute', onCompass, true);
     window.addEventListener('deviceorientation', onCompass, true);
   }
   function compassStop() {
-    if (!compassListening) return;
+    if (!compassListening || compassKeep) return;
     compassListening = false;
     window.removeEventListener('deviceorientationabsolute', onCompass, true);
     window.removeEventListener('deviceorientation', onCompass, true);
@@ -3817,10 +3892,9 @@
       via: fresh ? info.via : 0
     };
   }
-  function radarArrowToggle() { // the compass button: the blue arrow points north <-> turns to the way you face
-    radarOpts.arrowHeading = !radarOpts.arrowHeading; radarSave();
-    toast(radarOpts.arrowHeading ? (compassOffered() && compassFresh() ? 'Your blue arrow now turns to the way you face (compass).' : 'Your blue arrow now turns to the way you head. No compass reading yet, so it follows the GPS direction while you move.') : 'Your blue arrow now points north.');
-    renderMap();
+  async function radarArrowToggle() { // the compass button: (1) the map stays north-up and the blue arrow turns to the way you face <-> (2) the blue arrow stays pointing up and the map turns
+    await setHeadUp(!radarOpts.headUp);
+    toast(radarOpts.headUp ? (compassFresh() ? 'The map now turns as you turn. Your blue arrow stays pointing up.' : 'The map will turn as you turn once the compass answers. Your blue arrow stays pointing up.') : 'The map now stays north-up. Your blue arrow turns to the way you face.');
   }
   function radarSelect(id) { radarSelected = id; if (id !== null) markSel = null; renderMap(); }
   function radarCentreOn(lat, lon) { radarCentre = {lat: lat, lon: lon}; renderMap(); }
@@ -4221,7 +4295,7 @@
     let facing = null, facingBy = ''; // the way you are heading: the GPS course while you move, else the phone's compass when it reports
     if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) { facing = mo.headingDeg; facingBy = 'gps'; } // moving: the way you are travelling (more reliable than a phone in a pocket)
     else if (compassOffered() && compassFresh()) { facing = compassHeading; facingBy = 'compass'; } // standing still: the way the phone faces
-    const arrowDeg = (((radarOpts.arrowHeading && facing !== null) ? facing : 0) - rot + 360) % 360; // the blue arrow: north (as drawn on the map), or the way you head, as the compass button chooses
+    const arrowDeg = (((facing !== null) ? facing : 0) - rot + 360) % 360; // the blue arrow: north (as drawn on the map), or the way you head, as the compass button chooses
     const headingDeg = facing === null ? null : (facing - rot + 360) % 360; // where that heading falls on the screen, for the compass needle
     const selfHalo = svgEl('circle', {cx: me.x.toFixed(1), cy: me.y.toFixed(1), r: 21, fill: '#4fc3f7', 'fill-opacity': 0.22, class: 'radarSelfHalo'});
     world.appendChild(selfHalo);
@@ -4230,6 +4304,7 @@
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
+    if (selfNameStr) world.appendChild(svgEl('text', {x: me.x.toFixed(1), y: (me.y + 31).toFixed(1), fill: '#4fc3f7', 'fill-opacity': 0.85, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', stroke: V.halo, 'stroke-opacity': 0.7, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarSelfName'}, selfNameStr)); // your own name under the blue arrow, a little see-through
     world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
 
     // a scale bar that stays the same size on the screen: it picks a distance that is 40 to 130 pixels long
@@ -4272,15 +4347,15 @@
     // the compass button, under the centre button: N marks north (it turns with the map), the white needle with a red tip is the way you are heading,
     // and pressing it switches the blue arrow between always pointing north and turning to the way you face
     const northTxt = rot ? 'North is ' + Math.round((360 - rot) % 360) + ' degrees round from the top.' : 'North is at the top.';
-    const arrowTxt = radarOpts.arrowHeading ? 'Your blue arrow turns to the way you face. Press for it to point north.' : 'Your blue arrow points north. Press for it to turn to the way you face.';
-    const comp = radarButton('radarCompass', 'radarRound radarCompassBtn' + (radarOpts.arrowHeading ? ' on' : ''), northTxt + ' ' + arrowTxt, '', () => radarArrowToggle(), {pressed: radarOpts.arrowHeading});
+    const arrowTxt = radarOpts.arrowHeading ? 'The map is north-up and your blue arrow turns to the way you face. Press to turn the map instead (arrow stays up).' : 'The map turns to the way you face and your blue arrow stays up. Press to lock the map north instead.';
+    const comp = radarButton('radarCompass', 'radarRound radarCompassBtn' + (radarOpts.headUp ? ' on' : ''), northTxt + ' ' + arrowTxt, '', () => radarArrowToggle(), {pressed: radarOpts.headUp});
     { const hd = headingDeg === null ? null : headingDeg * Math.PI / 180, ux = hd === null ? 0 : Math.sin(hd), uy = hd === null ? 0 : -Math.cos(hd);
       const f = (n) => n.toFixed(1), tx = 11 * ux, ty = 11 * uy;
       let needle = '<circle cx="0" cy="0" r="2.5" fill="#9e9e9e"/>';
       if (hd !== null) needle = '<line x1="' + f(-5 * ux) + '" y1="' + f(-5 * uy) + '" x2="' + f(tx) + '" y2="' + f(ty) + '" stroke="#101010" stroke-width="5.5" stroke-linecap="round"/><line x1="' + f(-5 * ux) + '" y1="' + f(-5 * uy) + '" x2="' + f(tx) + '" y2="' + f(ty) + '" stroke="#ffffff" stroke-width="3" stroke-linecap="round" class="radarNeedleLine"/>'
         + '<polygon points="' + f(tx + 11 * ux) + ',' + f(ty + 11 * uy) + ' ' + f(tx - 7 * uy) + ',' + f(ty + 7 * ux) + ' ' + f(tx + 7 * uy) + ',' + f(ty - 7 * ux) + '" fill="#e53935" stroke="#101010" stroke-width="1.2" stroke-linejoin="round" class="radarNeedleTip"/>';
       comp.innerHTML = '<svg viewBox="-24 -24 48 48" width="44" height="44" aria-hidden="true"><g transform="rotate(' + (-rot).toFixed(0) + ')"><text x="0" y="-15.5" text-anchor="middle" font-size="10" font-weight="800" fill="currentColor">N</text></g>' + needle + '</svg>';
-      comp.setAttribute('data-heading', headingDeg === null ? '' : String(Math.round(facing))); comp.setAttribute('data-arrow', radarOpts.arrowHeading ? 'heading' : 'north'); }
+      comp.setAttribute('data-heading', headingDeg === null ? '' : String(Math.round(facing))); comp.setAttribute('data-arrow', radarOpts.headUp ? 'map-turns' : 'arrow-turns'); }
     right.appendChild(comp);
     { const m = radarMode(), lab = 'Map view ' + radarDisplayMode + ' of 5: ' + m.text + '. Press for the next view.';
       const mb = radarButton('radarModeBtn', 'radarRound radarModeBtn' + (radarDisplayMode > 1 ? ' on' : ''), lab, RADAR_ICON.eye + '<span class="radarModeNum" aria-hidden="true">' + radarDisplayMode + '</span>', radarModeNext);
@@ -4310,6 +4385,9 @@
         it.appendChild(g); it.appendChild(document.createTextNode(' ' + label)); it.title = label + (on ? ': shown' : ': hidden'); it.setAttribute('aria-label', label + (on ? ': shown' : ': hidden'));
         sh.appendChild(it);
       }
+      { const it = document.createElement('span'); it.className = 'radarShowItem on'; it.setAttribute('data-layer', 'me'); it.setAttribute('data-shown', 'yes'); // you are on every map view
+        const g = document.createElement('b'); g.className = 'radarShowMark'; g.textContent = '\u2714'; g.setAttribute('aria-hidden', 'true');
+        it.appendChild(g); it.appendChild(document.createTextNode(' Me')); it.title = 'Me: always shown'; it.setAttribute('aria-label', 'Me: always shown'); sh.appendChild(it); }
       stack.appendChild(sh);
     }
     { const row = document.createElement('div'); row.className = 'radarBottom'; row.id = 'radarBottom';
@@ -4825,7 +4903,7 @@
     const box = document.createElement('div'); box.className = 'radarHeadHud'; box.id = 'radarHeadHud'; box.setAttribute('role', 'img');
     const d = Math.round(((deg % 360) + 360) % 360) % 360, name = compassDirection(d);
     box.setAttribute('aria-label', 'Heading ' + name + ', ' + d + ' degrees, from the ' + (by === 'compass' ? 'phone\u2019s compass' : 'GPS'));
-    const sv = svgEl('svg', {width: 54, height: 54, viewBox: '-27 -27 54 54', 'aria-hidden': 'true'});
+    const sv = svgEl('svg', {width: 84, height: 84, viewBox: '-27 -27 54 54', 'aria-hidden': 'true'});
     sv.appendChild(svgEl('circle', {cx: 0, cy: 0, r: 25, fill: '#1e1e1e', stroke: '#8a8a8a', 'stroke-width': 1.5}));
     const card = svgEl('g', {class: 'rcCard', transform: 'rotate(' + (-d) + ')'});
     for (let a = 0; a < 360; a += 45) { const r = a % 90 === 0 ? [20, 25] : [22, 25], t = a * Math.PI / 180; card.appendChild(svgEl('line', {x1: (Math.sin(t) * r[0]).toFixed(1), y1: (-Math.cos(t) * r[0]).toFixed(1), x2: (Math.sin(t) * r[1]).toFixed(1), y2: (-Math.cos(t) * r[1]).toFixed(1), stroke: '#bdbdbd', 'stroke-width': 1.2})); }
@@ -5359,14 +5437,16 @@
   // One reading from the browser's location service, handed to the board. The
   // board only uses it when it has no current GPS fix of its own.
   function pollBrowserLocation() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) { phoneLocNote = 'this browser has no location service'; gpsMenuUpdate(); return; }
     navigator.geolocation.getCurrentPosition(pos => {
+      phoneLocOkAt = Date.now(); phoneLocNote = ''; gpsMenuUpdate();
       if (ws && ws.readyState === 1) {
         const msg = {action: 'setLocation', lat: pos.coords.latitude, lon: pos.coords.longitude, source: 'browser'};
         if (Number.isFinite(pos.coords.altitude)) msg.alt = pos.coords.altitude; // many devices can't report altitude: null
         wsSend(msg);
       }
     }, err => {
+      phoneLocNote = err.code === 1 ? 'location permission was denied' : err.code === 2 ? 'the phone could not work out its position' : 'the phone took too long to find its position'; gpsMenuUpdate();
       if (err.code === 1) { // permission denied: stop rather than keep asking
         disableBrowserLocation();
         alert("This page was denied permission to use your location, so it has stopped trying.");
@@ -5856,6 +5936,7 @@
     }
 
     if (data.type === 'cpuSave') { cpuSaveNow = !!data.on; cpuMenuUpdate(); return; }
+    if (data.type === 'battHist') { if (Array.isArray(data.v)) { battHistV = data.v.filter(n => typeof n === 'number'); battDraw(); } return; }
     if (data.type === 'gpsMode') { if (typeof data.mode === 'number' && data.mode >= 0 && data.mode <= 3) { gpsModeNow = data.mode; gpsMenuUpdate(); } return; }
 
     if (data.type === 'wifiSet') { wifiOffNow = !!data.off; wifiPowerBusy = true; wifiPowerUpdate(); return; }
@@ -5886,6 +5967,7 @@
         browserLocResumeTried = true;
         try { if (localStorage.getItem('useBrowserLocation') === '1') enableBrowserLocation(false); } catch (e) {}
       }
+      if ((gpsModeNow === 1 || gpsModeNow === 2) && browserLocTimer === null && !phoneLocAutoTried) { phoneLocAutoTried = true; enableBrowserLocation(false); } // the board is set to use the phone's GPS: start sharing (the browser asks permission itself)
       selfFirmwareHash = data.firmwareHash;
       if (currentPeer === null && peers.length) currentPeer = peers[0].id;
       document.getElementById('selfNameLabel').textContent = data.selfName;
@@ -6248,7 +6330,7 @@
   document.getElementById('mapNewTabBtn').onclick = openMapInNewTab;
   document.getElementById('mapTabRadar').onclick = () => setMapTab('radar');
   document.getElementById('networkOpenBtn').onclick = () => { openMap(); setMapTab('network'); }; // the network view lives in the Everyone list now
-  document.getElementById('mapTabCoverage').onclick = () => setMapTab('coverage');
+  document.getElementById('mapTabCoverage').onclick = () => { gearMenuOpen(false); setMapTab('coverage'); };
   document.getElementById('mapTabMaps').onclick = () => { gearMenuOpen(false); setMapTab('maps'); };
   document.getElementById('mapTabGps').onclick = () => { gearMenuOpen(false); setMapTab('gps'); };
   document.getElementById('radarLayersBtn').onclick = () => { gearMenuOpen(false); if (mapTab !== 'radar') setMapTab('radar'); radarSheet = radarSheet === 'layers' ? null : 'layers'; renderMap(); };
@@ -6394,6 +6476,10 @@
   document.getElementById('healthCloseBtn').onclick = closeHealth;
   document.getElementById('healthRefreshBtn').onclick = loadHealth;
   document.getElementById('wifiMenuBtn').addEventListener('click', wifiPowerTap);
+  document.getElementById('battMenuBtn').addEventListener('click', () => battOverlayOpen(true));
+  document.getElementById('battCloseBtn').onclick = () => battOverlayOpen(false);
+  document.getElementById('battOverlay').onclick = (e) => { if (e.target.id === 'battOverlay') battOverlayOpen(false); };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('battOverlay').classList.contains('open')) battOverlayOpen(false); });
   document.getElementById('gpsMenuBtn').addEventListener('click', () => gpsOverlayOpen(true));
   document.getElementById('cpuMenuBtn').addEventListener('click', cpuMenuTap);
   document.getElementById('gpsCloseBtn').onclick = () => gpsOverlayOpen(false);
