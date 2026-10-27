@@ -638,7 +638,8 @@
   // When this page is not served by the board itself (it is opened from a secure web address or from a file on the phone), there is no WebSocket
   // to reach. The board then talks over Bluetooth Low Energy, carrying the very same JSON messages. BleSocket looks like a WebSocket to the rest of
   // the page. Messages are cut into frames (the first byte: 0 whole, 1 first, 2 middle, 3 last) because one Bluetooth packet holds a few hundred bytes.
-  const BLE_SERVICE = 'c0de1f01-5a2b-4e8a-9d3c-4c4f52414c01', BLE_RX = 'c0de1f02-5a2b-4e8a-9d3c-4c4f52414c01', BLE_TX = 'c0de1f03-5a2b-4e8a-9d3c-4c4f52414c01';
+  const BLE_SERVICE = 'c0de1f01-5a2b-4e8a-9d3c-4c4f52414c01', BLE_RX = 'c0de1f02-5a2b-4e8a-9d3c-4c4f52414c01', BLE_TX = 'c0de1f03-5a2b-4e8a-9d3c-4c4f52414c01', BLE_INFO = 'c0de1f04-5a2b-4e8a-9d3c-4c4f52414c01', BLE_PROTO = 2; // BLE_PROTO must match the firmware's BLE_PROTO
+  let bleBoardInfo = null, bleMismatch = ''; // what the board said about itself over Bluetooth: {proto, fw}, or {proto: 0} for firmware too old to say
   const bleMode = (() => { try { return location.protocol !== 'http:' || /[?&]transport=ble\b/.test(location.search); } catch (e) { return false; } })();
   const BLE_WRITE_PAYLOAD = 19; // a write is 20 bytes at the smallest Bluetooth setting; one is the frame's own header
   let bleDevice = null, bleSock = null, bleLastNote = '';
@@ -727,7 +728,7 @@
     try {
       bleDevice = await navigator.bluetooth.requestDevice({filters: [{services: [BLE_SERVICE]}]});
     } catch (e) { bleNote(e && e.name === 'NotFoundError' ? 'No board was chosen.' : ('Could not start Bluetooth: ' + (e && e.message ? e.message : e))); return; }
-    bleNote('Connecting…');
+    bleMismatch = ''; bleNote('Connecting…');
     if (ws && ws.readyState === 1) return;
     if (wsReconnectTimer !== null) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
     connectWebSocket();
@@ -749,13 +750,24 @@
         const svc = await server.getPrimaryService(BLE_SERVICE);
         this._wr = await svc.getCharacteristic(BLE_RX);
         this._tx = await svc.getCharacteristic(BLE_TX);
+        bleBoardInfo = {proto: 0, fw: ''};
+        try { // the version card: readable before pairing; boards from before this feature do not have it
+          const ic = await svc.getCharacteristic(BLE_INFO), v = await ic.readValue();
+          bleBoardInfo = JSON.parse(new TextDecoder().decode(v));
+        } catch (e) { /* no version card: older firmware */ }
+        if (bleBoardInfo.proto && bleBoardInfo.proto !== BLE_PROTO) {
+          const older = bleBoardInfo.proto < BLE_PROTO;
+          bleMismatch = 'Version mismatch: this page speaks Bluetooth version ' + BLE_PROTO + ' but the board (firmware ' + (bleBoardInfo.fw || '?') + ') speaks version ' + bleBoardInfo.proto + '. ' + (older ? 'The board firmware is older than this page \u2014 reflash the board with the newest firmware.' : 'This page is older than the board firmware \u2014 upload the newest ble_page.html (or update the app).');
+          this._fail(bleMismatch); bleDevice = null; // stop retrying: a retry cannot fix a version difference
+          return;
+        }
         bleDevice.addEventListener('gattserverdisconnected', this._onGone);
         bleNote('Pairing… if Android asks for a PIN, type the board’s PIN (ble_pin).');
         await this._tx.readValue(); // a protected value: this is what makes Android pair (and ask for the PIN) the first time
         this._tx.addEventListener('characteristicvaluechanged', this._onValue);
         await this._tx.startNotifications();
         if (this.readyState === 3) return;
-        this.readyState = 1; bleNote('');
+        this.readyState = 1; bleNote(bleBoardInfo && bleBoardInfo.fw ? ('Connected \u2014 board firmware ' + bleBoardInfo.fw) : '');
         bleCardUpdate();
         if (this.onopen) this.onopen({});
       } catch (e) { this._fail(e && e.message ? e.message : 'Bluetooth failed'); }
@@ -843,7 +855,11 @@
     if (bleHelloTimer !== null) clearTimeout(bleHelloTimer);
     const step = () => {
       bleHelloTimer = null;
-      if (bleGotConfig || !ws || ws.readyState !== 1 || bleHelloTries >= 5) return;
+      if (bleGotConfig || !ws || ws.readyState !== 1) return;
+      if (bleHelloTries >= 5) { // the board never answered: say why that may be
+        const why = bleBoardInfo && bleBoardInfo.proto === 0 ? 'The board did not say which version it is, so its firmware is probably older than this page \u2014 reflash the board with the newest firmware.' : 'The board is connected but is not answering. Try disconnecting and connecting again.';
+        bleNote(why); connectionBannerEl.textContent = why; connectionBannerEl.style.display = 'block'; return;
+      }
       bleHelloTries++;
       try { ws.send(JSON.stringify({action: 'hello'})); } catch (e) { /* the link is going away */ }
       bleHelloTimer = setTimeout(step, 4000);
@@ -856,7 +872,7 @@
     refreshStatusStrip();
     if (bleMode) { // over Bluetooth there is no network to name
       bleCardUpdate();
-      connectionBannerEl.textContent = bleDevice ? 'Bluetooth connection lost \u2014 reconnecting\u2026' : 'Not connected \u2014 tap \u201CConnect by Bluetooth\u201D';
+      connectionBannerEl.textContent = bleDevice ? 'Bluetooth connection lost \u2014 reconnecting\u2026' : (bleMismatch || 'Not connected \u2014 tap \u201CConnect by Bluetooth\u201D');
       connectionBannerEl.style.display = 'block';
       if (wsReconnectTimer === null) wsReconnectTimer = setTimeout(connectWebSocket, bleDevice ? RECONNECT_DELAY_MS : 1000);
       return;
@@ -3718,13 +3734,13 @@
     renderMap();
     toast('Map view ' + radarDisplayMode + ' of 5: ' + m.text);
   }
-  const radarOpts = {view: 'standard', hidden: {}, rings: true, trails: true, signal: false, headUp: false};
+  const radarOpts = {view: 'standard', hidden: {}, rings: true, trails: true, signal: false, headUp: false, arrowHeading: false}; // arrowHeading: the blue arrow turns to the way you face (false = it always points north)
   try {
     const sv = JSON.parse(localStorage.getItem(RADAR_OPTS_KEY) || '{}');
     if (sv && MAP_VIEWS[sv.view]) radarOpts.view = sv.view;
     if (sv && sv.hidden && typeof sv.hidden === 'object') for (const c of [1, 2, 3, 4, 5, 6, 7]) if (sv.hidden[c] === true) radarOpts.hidden[c] = true;
     for (const k of ['rings', 'trails']) if (sv && sv[k] === false) radarOpts[k] = false;
-    for (const k of ['signal', 'headUp']) if (sv && sv[k] === true) radarOpts[k] = true;
+    for (const k of ['signal', 'headUp', 'arrowHeading']) if (sv && sv[k] === true) radarOpts[k] = true;
   } catch (e) { /* no saved choices */ }
   function radarSave() { try { localStorage.setItem(RADAR_OPTS_KEY, JSON.stringify(radarOpts)); } catch (e) { /* not saved */ } }
   let radarCentre = null;          // {lat, lon} the view is centred on after dragging or "centre here"; null = centred on you
@@ -3749,7 +3765,7 @@
     compassAt = Date.now();
     if (!mapIsOpen() || mapTab !== 'radar') return;
     if (!compassSeen) { compassSeen = true; renderMap(); return; } // now the option can be offered
-    if ((radarOpts.headUp || !selfMotion()) && !radarDragging && (compassDrawn === null || Math.abs(angleDiff(compassHeading, compassDrawn)) >= 3) && Date.now() - compassDrawnAt > (radarOpts.headUp ? 200 : 400)) renderMap(); // the arrow follows the phone when you stand still
+    if ((radarOpts.headUp || radarOpts.arrowHeading || !selfMotion()) && !radarDragging && (compassDrawn === null || Math.abs(angleDiff(compassHeading, compassDrawn)) >= 3) && Date.now() - compassDrawnAt > (radarOpts.headUp ? 200 : 400)) renderMap(); // the arrow follows the phone when you stand still
   }
   function compassStart() {
     if (compassListening || !compassSupported()) return;
@@ -3800,6 +3816,11 @@
       tier: fresh && info.rssi ? signalTier(info.rssi) : null,
       via: fresh ? info.via : 0
     };
+  }
+  function radarArrowToggle() { // the compass button: the blue arrow points north <-> turns to the way you face
+    radarOpts.arrowHeading = !radarOpts.arrowHeading; radarSave();
+    toast(radarOpts.arrowHeading ? (compassOffered() && compassFresh() ? 'Your blue arrow now turns to the way you face (compass).' : 'Your blue arrow now turns to the way you head. No compass reading yet, so it follows the GPS direction while you move.') : 'Your blue arrow now points north.');
+    renderMap();
   }
   function radarSelect(id) { radarSelected = id; if (id !== null) markSel = null; renderMap(); }
   function radarCentreOn(lat, lon) { radarCentre = {lat: lat, lon: lon}; renderMap(); }
@@ -4197,26 +4218,18 @@
     });
     // you are an arrowhead, not a dot: it points the way you are going (GPS course while moving), or the way the phone faces (compass) when you are still; with neither it points north
     const mo = selfMotion();
-    let facing = null, facingBy = '';
-    if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) { facing = mo.headingDeg; facingBy = 'gps'; }
-    else if (compassOffered() && compassFresh()) { facing = compassHeading; facingBy = 'compass'; }
-    const arrowDeg = ((facing === null ? 0 : facing) - rot + 360) % 360;
+    let facing = null, facingBy = ''; // the way you are heading: the GPS course while you move, else the phone's compass when it reports
+    if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) { facing = mo.headingDeg; facingBy = 'gps'; } // moving: the way you are travelling (more reliable than a phone in a pocket)
+    else if (compassOffered() && compassFresh()) { facing = compassHeading; facingBy = 'compass'; } // standing still: the way the phone faces
+    const arrowDeg = (((radarOpts.arrowHeading && facing !== null) ? facing : 0) - rot + 360) % 360; // the blue arrow: north (as drawn on the map), or the way you head, as the compass button chooses
+    const headingDeg = facing === null ? null : (facing - rot + 360) % 360; // where that heading falls on the screen, for the compass needle
     const selfHalo = svgEl('circle', {cx: me.x.toFixed(1), cy: me.y.toFixed(1), r: 21, fill: '#4fc3f7', 'fill-opacity': 0.22, class: 'radarSelfHalo'});
     world.appendChild(selfHalo);
-    const selfDot = svgEl('path', {d: 'M0 -12L9 10L0 5.5L-9 10Z', transform: 'translate(' + me.x.toFixed(1) + ' ' + me.y.toFixed(1) + ') rotate(' + arrowDeg.toFixed(0) + ') scale(1.45)', cx: me.x.toFixed(1), cy: me.y.toFixed(1), fill: '#4fc3f7', stroke: V.halo, 'stroke-width': 2, 'stroke-linejoin': 'round', class: 'radarSelf' + (facing === null ? ' noDirection' : ''), 'data-facing': facing === null ? '' : String(Math.round(facing)), 'data-by': facingBy});
+    const selfDot = svgEl('path', {d: 'M0 -12L9 10L0 5.5L-9 10Z', transform: 'translate(' + me.x.toFixed(1) + ' ' + me.y.toFixed(1) + ') rotate(' + arrowDeg.toFixed(0) + ') scale(1.45)', cx: me.x.toFixed(1), cy: me.y.toFixed(1), fill: '#4fc3f7', stroke: V.halo, 'stroke-width': 2, 'stroke-linejoin': 'round', class: 'radarSelf' + (facing === null || !radarOpts.arrowHeading ? ' noDirection' : ''), 'data-facing': facing === null ? '' : String(Math.round(facing)), 'data-by': facingBy});
     selfDot.appendChild(svgEl('title', {}, 'You'));
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
-    if (facing !== null) { // a white line with a red arrowhead, out in front of you in the direction you are heading
-      const th = arrowDeg * Math.PI / 180, ux = Math.sin(th), uy = -Math.cos(th), x0 = me.x + ux * 16, y0 = me.y + uy * 16, x1 = me.x + ux * 62, y1 = me.y + uy * 62;
-      const tip = [[x1 + ux * 12, y1 + uy * 12], [x1 - uy * 7, y1 + ux * 7], [x1 + uy * 7, y1 - ux * 7]].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
-      const hg = svgEl('g', {class: 'radarHeading', 'aria-hidden': 'true', 'data-heading': String(Math.round(facing))});
-      hg.appendChild(svgEl('line', {x1: x0.toFixed(1), y1: y0.toFixed(1), x2: x1.toFixed(1), y2: y1.toFixed(1), stroke: '#101010', 'stroke-width': 7, 'stroke-linecap': 'round'}));
-      hg.appendChild(svgEl('line', {x1: x0.toFixed(1), y1: y0.toFixed(1), x2: x1.toFixed(1), y2: y1.toFixed(1), stroke: '#ffffff', 'stroke-width': 3.5, 'stroke-linecap': 'round', class: 'radarHeadingLine'}));
-      hg.appendChild(svgEl('polygon', {points: tip, fill: '#e53935', stroke: '#101010', 'stroke-width': 1.5, 'stroke-linejoin': 'round', class: 'radarHeadingTip'}));
-      world.appendChild(hg);
-    }
     world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
 
     // a scale bar that stays the same size on the screen: it picks a distance that is 40 to 130 pixels long
@@ -4256,9 +4269,19 @@
     leftCol.appendChild(radarButton('radarHelpBtn', 'radarRound' + (radarSheet === 'help' ? ' on' : ''), 'What the map shows', RADAR_ICON.help, () => { radarSheet = radarSheet === 'help' ? null : 'help'; renderMap(); }, {pressed: radarSheet === 'help'}));
     leftCol.appendChild(radarButton('radarPlacesBtn', 'radarRound' + (radarSheet === 'places' || marksAny() ? ' on' : ''), 'Places: mark the car, a meet point or a named place', RADAR_ICON.places, () => { radarSheet = radarSheet === 'places' ? null : 'places'; renderMap(); }, {pressed: radarSheet === 'places'}));
     leftCol.appendChild(radarButton('radarTripBtn', 'radarRound' + (radarSheet === 'trip' || tripActive() ? ' on' : ''), 'History: retrace my steps, time machine, altitude', RADAR_ICON.trip, () => { radarSheet = radarSheet === 'trip' ? null : 'trip'; if (radarSheet === 'trip') { trip.note = ''; tripLoad(false); } renderMap(); }, {pressed: radarSheet === 'trip'}));
-    const comp = document.createElement('div'); comp.id = 'radarCompass'; comp.className = 'radarCompass'; comp.setAttribute('role', 'img');
-    comp.setAttribute('aria-label', rot ? 'North is ' + Math.round((360 - rot) % 360) + ' degrees round from the top' : 'North is at the top');
-    comp.innerHTML = '<span>N</span><svg viewBox="0 0 12 8" width="12" height="8" aria-hidden="true" style="transform: rotate(' + (-rot).toFixed(0) + 'deg)"><path d="M6 0L11 8H1z" fill="currentColor"/></svg>';
+    // the compass button, under the centre button: N marks north (it turns with the map), the white needle with a red tip is the way you are heading,
+    // and pressing it switches the blue arrow between always pointing north and turning to the way you face
+    const northTxt = rot ? 'North is ' + Math.round((360 - rot) % 360) + ' degrees round from the top.' : 'North is at the top.';
+    const arrowTxt = radarOpts.arrowHeading ? 'Your blue arrow turns to the way you face. Press for it to point north.' : 'Your blue arrow points north. Press for it to turn to the way you face.';
+    const comp = radarButton('radarCompass', 'radarRound radarCompassBtn' + (radarOpts.arrowHeading ? ' on' : ''), northTxt + ' ' + arrowTxt, '', () => radarArrowToggle(), {pressed: radarOpts.arrowHeading});
+    { const hd = headingDeg === null ? null : headingDeg * Math.PI / 180, ux = hd === null ? 0 : Math.sin(hd), uy = hd === null ? 0 : -Math.cos(hd);
+      const f = (n) => n.toFixed(1), tx = 11 * ux, ty = 11 * uy;
+      let needle = '<circle cx="0" cy="0" r="2.5" fill="#9e9e9e"/>';
+      if (hd !== null) needle = '<line x1="' + f(-5 * ux) + '" y1="' + f(-5 * uy) + '" x2="' + f(tx) + '" y2="' + f(ty) + '" stroke="#101010" stroke-width="5.5" stroke-linecap="round"/><line x1="' + f(-5 * ux) + '" y1="' + f(-5 * uy) + '" x2="' + f(tx) + '" y2="' + f(ty) + '" stroke="#ffffff" stroke-width="3" stroke-linecap="round" class="radarNeedleLine"/>'
+        + '<polygon points="' + f(tx + 11 * ux) + ',' + f(ty + 11 * uy) + ' ' + f(tx - 7 * uy) + ',' + f(ty + 7 * ux) + ' ' + f(tx + 7 * uy) + ',' + f(ty - 7 * ux) + '" fill="#e53935" stroke="#101010" stroke-width="1.2" stroke-linejoin="round" class="radarNeedleTip"/>';
+      comp.innerHTML = '<svg viewBox="-24 -24 48 48" width="44" height="44" aria-hidden="true"><g transform="rotate(' + (-rot).toFixed(0) + ')"><text x="0" y="-15.5" text-anchor="middle" font-size="10" font-weight="800" fill="currentColor">N</text></g>' + needle + '</svg>';
+      comp.setAttribute('data-heading', headingDeg === null ? '' : String(Math.round(facing))); comp.setAttribute('data-arrow', radarOpts.arrowHeading ? 'heading' : 'north'); }
+    right.appendChild(comp);
     { const m = radarMode(), lab = 'Map view ' + radarDisplayMode + ' of 5: ' + m.text + '. Press for the next view.';
       const mb = radarButton('radarModeBtn', 'radarRound radarModeBtn' + (radarDisplayMode > 1 ? ' on' : ''), lab, RADAR_ICON.eye + '<span class="radarModeNum" aria-hidden="true">' + radarDisplayMode + '</span>', radarModeNext);
       mb.setAttribute('data-mode', String(radarDisplayMode)); leftCol.appendChild(mb); }
@@ -4290,7 +4313,7 @@
       stack.appendChild(sh);
     }
     { const row = document.createElement('div'); row.className = 'radarBottom'; row.id = 'radarBottom';
-      row.appendChild(comp); row.appendChild(scaleSvg);
+      row.appendChild(scaleSvg);
       const sun = sunChipEl(); if (sun) row.appendChild(sun);
       stack.appendChild(row); }
     const capTmp = document.createElement('div'); mapCaption(capTmp, mapInfo);
