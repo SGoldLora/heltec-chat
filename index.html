@@ -908,7 +908,7 @@
       bleHelloTimer = null;
       if (bleGotConfig || !ws || ws.readyState !== 1) return;
       if (bleHelloTries >= 5) { // the board never answered: say why that may be
-        const why = bleBoardInfo && bleBoardInfo.proto === 0 ? 'The board did not say which version it is, so its firmware is probably older than this page \u2014 reflash the board with the newest firmware.' : 'The board is connected but is not answering. Try disconnecting and connecting again.';
+        const why = bleBoardInfo && bleBoardInfo.proto === 0 ? 'The board did not answer and did not say which version it is. Either its firmware is older than this page (reflash it), or Android still remembers an older layout of this board: open Android Settings > Bluetooth, forget this board, then connect again and enter the PIN.' : 'The board is connected but is not answering. Try disconnecting and connecting again.';
         bleNote(why); connectionBannerEl.textContent = why; connectionBannerEl.style.display = 'block'; return;
       }
       bleHelloTries++;
