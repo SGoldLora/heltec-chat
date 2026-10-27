@@ -319,7 +319,7 @@
   .radarStage.hasHeadHud .mapLoadingCard { top: 130px; }
   .mapSpinner { flex: none; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-top-color: #4fc3f7; border-radius: 50%; animation: mapSpin .9s linear infinite; }
   @keyframes mapSpin { to { transform: rotate(360deg); } }
-  #busyPill { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); max-width: 86vw; background: #1e3a5f; color: #fff; border: 1px solid #4fc3f7; padding: 6px 14px; border-radius: 16px; font-size: 13px; z-index: 190; pointer-events: none; }
+  #busyPill { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); max-width: 86vw; background: rgba(30,58,95,0.45); color: #fff; border: 1px solid rgba(79,195,247,0.5); padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.9); z-index: 190; pointer-events: none; } /* see-through; taps go through to the buttons under it */
   .radarStatus { position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 0 10px; box-sizing: border-box; background: var(--fl-bg); border-bottom: 1px solid var(--fl-line); color: var(--fl-ink); font-size: 12px; white-space: nowrap; overflow: hidden; }
   .radarStatus .rsRight { margin-left: auto; }
   .radarStatus .rsOk { color: #66bb6a; } .radarStatus .rsWarn { color: #ffb74d; } .radarStatus .rsBad { color: #ef5350; font-weight: 700; }
@@ -3854,24 +3854,27 @@
   // The map fills the whole tab. Controls float over it; a tapped person gets a details card; the people list is a drawer; a Layers sheet
   // chooses the map view and what is drawn. The picture is drawn at the size of its container, centred on you (or on wherever you dragged it to).
   const RADAR_OPTS_KEY = 'loraRadarOpts';
-  // One button cycles what is drawn: 1 everything, 2 no past tracks, 3 also no people, 4 no past tracks or markers but people, 5 only you.
-  // (Past tracks: other people's trails and your own way-back line. Markers: the car, the meet point and named places.)
+  // One button cycles what is drawn: 1 everything, 2 no past tracks, 3 also no people, 4 no past tracks or markers but people, 5 only found places and you, 6 only you.
+  // (Past tracks: other people's trails and your own way-back line. Markers: the car, the meet point and named places. Found: the arrows from the Find button.)
+  const RADAR_VIEWS = 6;
   const RADAR_MODES = [
     null,
-    {tracks: true,  people: true,  marks: true,  text: 'everything: past tracks, other people and map markers'},
-    {tracks: false, people: true,  marks: true,  text: 'no past tracks; other people and map markers shown'},
-    {tracks: false, people: false, marks: true,  text: 'no past tracks or other people; map markers shown'},
-    {tracks: false, people: true,  marks: false, text: 'no past tracks or map markers; other people shown'},
-    {tracks: false, people: false, marks: false, text: 'only you: no past tracks, other people or map markers'}];
+    {tracks: true,  people: true,  marks: true,  found: true,  text: 'everything: past tracks, other people, map markers and found places'},
+    {tracks: false, people: true,  marks: true,  found: true,  text: 'no past tracks; other people, map markers and found places shown'},
+    {tracks: false, people: false, marks: true,  found: true,  text: 'no past tracks or other people; map markers and found places shown'},
+    {tracks: false, people: true,  marks: false, found: true,  text: 'no past tracks or map markers; other people and found places shown'},
+    {tracks: false, people: false, marks: false, found: true,  text: 'only found places and you: no past tracks, other people or map markers'},
+    {tracks: false, people: false, marks: false, found: false, text: 'only you: no past tracks, other people, map markers or found places'}];
   let radarDisplayMode = 1; // starts at 1 each time the page is opened, so a hidden layer is never a surprise tomorrow
   const radarMode = () => RADAR_MODES[radarDisplayMode];
   function radarModeNext() {
-    radarDisplayMode = radarDisplayMode % 5 + 1;
+    radarDisplayMode = radarDisplayMode % RADAR_VIEWS + 1;
     const m = radarMode();
     if (!m.people) radarSelected = null;
+    if (!m.found) findPick = null;
     if (!m.marks) { markSel = null; markGoto = null; markPlacing = false; }
     renderMap();
-    toast('Map view ' + radarDisplayMode + ' of 5: ' + m.text);
+    toast('Map view ' + radarDisplayMode + ' of ' + RADAR_VIEWS + ': ' + m.text);
   }
   const radarOpts = {view: 'standard', hidden: {}, rings: true, trails: true, signal: false, headUp: false, arrowHeading: false}; // arrowHeading: the blue arrow turns to the way you face (false = it always points north)
   try {
@@ -4273,7 +4276,9 @@
     if (radarFindKind === null) return;
     const meta = MAP_POI[radarFindKind], five = findCandidates(radarFindKind).slice(0, 5), V = G.V;
     const g = svgEl('g', {class: 'radarFind', id: 'radarFind', 'data-kind': String(radarFindKind)});
-    const inset = 26, x0 = inset, x1 = G.W - inset, y0 = inset + 40, y1 = G.usableH - inset;
+    let stackH = 0; try { const st = document.getElementById('radarBottomStack'); stackH = st ? st.offsetHeight : 0; } catch (e) {}
+    const x0 = Math.min(64, G.W * 0.12), x1 = G.W - x0, y0 = G.usableH > 520 ? 190 : 96, y1 = Math.max(y0 + 40, G.usableH - Math.max(stackH, 150) - 22); // clear of the button columns, the top readout and the bottom strip
+    const labels = [];
     five.forEach((c, i) => {
       const item = svgEl('g', {class: 'radarFindItem', 'data-i': String(i), tabindex: '0', role: 'button', 'aria-label': (i + 1) + '. ' + c.name + ', ' + formatDistance(c.miles) + '. Tap for details.'});
       item.style.cursor = 'pointer';
@@ -4293,11 +4298,29 @@
       item.appendChild(svgEl('line', {x1: me.x.toFixed(1), y1: me.y.toFixed(1), x2: ex.toFixed(1), y2: ey.toFixed(1), stroke: meta.color, 'stroke-width': 1.8, 'stroke-dasharray': '6 4', 'stroke-opacity': 0.8, class: 'radarFindLine'}));
       const ah = [[ex, ey], [ex - 14 * ux + 7 * uy, ey - 14 * uy - 7 * ux], [ex - 14 * ux - 7 * uy, ey - 14 * uy + 7 * ux]];
       item.appendChild(svgEl('polygon', {points: ah.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: meta.color, stroke: V.halo, 'stroke-width': 1.5, class: 'radarFindArrow', 'data-clipped': clipped ? 'yes' : 'no'}));
-      const left = ex > G.W / 2, ly = Math.min(Math.max(ey + (uy > 0 ? -12 : 20), y0), y1);
-      item.appendChild(svgEl('text', {x: (ex + (left ? -10 : 10) - (clipped ? 6 * ux : 0)).toFixed(1), y: ly.toFixed(1), fill: V.ink, 'font-size': 13, 'font-weight': 700, 'text-anchor': left ? 'end' : 'start', stroke: V.halo, 'stroke-opacity': 0.85, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarFindLabel'}, (i + 1) + '. ' + c.name + ' \u00B7 ' + formatDistance(c.miles)));
+      const nm = c.name.length > 24 ? c.name.slice(0, 23) + '\u2026' : c.name, txt = (i + 1) + '. ' + nm + ' \u00B7 ' + formatDistance(c.miles), tw = txt.length * 7.4;
+      const onLeft = ex > G.W / 2; // label sits inward of the arrow, so it never runs off the map
+      let lx = ex + (onLeft ? -12 : 12), anchor = onLeft ? 'end' : 'start';
+      const vert = clipped && Math.abs(ux) < 0.5;
+      if (vert) { lx = Math.min(Math.max(ex, tw / 2 + 8), G.W - tw / 2 - 8); anchor = 'middle'; } // arrow on the top or bottom edge: label centred over it
+      const ly0 = vert ? ey + (uy > 0 ? -14 : 24) : ey - 12; // beside the arrow, just above its line
+      const lab = svgEl('text', {x: lx.toFixed(1), y: ly0.toFixed(1), fill: V.ink, 'font-size': 13, 'font-weight': 700, 'text-anchor': anchor, stroke: V.halo, 'stroke-opacity': 0.85, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarFindLabel'}, txt);
+      item.appendChild(lab); labels.push({el: lab, x: lx, y: ly0, w: tw, anchor: anchor});
       if (findPick && findKey(findPick) === findKey(c)) item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 16, fill: 'none', stroke: '#fff', 'stroke-width': 2, class: 'radarFindSel'}));
       g.appendChild(item);
     });
+    const span = (l) => l.anchor === 'end' ? [l.x - l.w, l.x] : l.anchor === 'middle' ? [l.x - l.w / 2, l.x + l.w / 2] : [l.x, l.x + l.w];
+    const lo = 20, hi = Math.max(lo + 40, y1 + 14), LH = 18;
+    labels.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labels.length; i++) for (let j = 0; j < i; j++) { // push a label down until it clears the ones above it
+      const a = span(labels[i]), b = span(labels[j]);
+      if (a[0] < b[1] + 4 && b[0] < a[1] + 4 && Math.abs(labels[i].y - labels[j].y) < LH) labels[i].y = labels[j].y + LH;
+    }
+    for (let i = labels.length - 1; i >= 0; i--) { // if that ran past the bottom, pull the lot back up
+      if (labels[i].y > hi) labels[i].y = hi;
+      for (let j = i - 1; j >= 0; j--) { const a = span(labels[i]), b = span(labels[j]); if (a[0] < b[1] + 4 && b[0] < a[1] + 4 && labels[i].y - labels[j].y < LH) labels[j].y = labels[i].y - LH; }
+    }
+    labels.forEach(l => { l.el.setAttribute('y', Math.max(lo, l.y).toFixed(1)); });
     world.appendChild(g);
   }
   function findSheetBody(body, sec) {
@@ -4508,7 +4531,7 @@
     selfDot.appendChild(svgEl('title', {}, 'You'));
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
-    radarFindDraw(world, G, me);
+    if (dm.found) radarFindDraw(world, G, me);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
     if (selfNameStr) world.appendChild(svgEl('text', {x: me.x.toFixed(1), y: (me.y + 31).toFixed(1), fill: '#4fc3f7', 'fill-opacity': 0.85, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', stroke: V.halo, 'stroke-opacity': 0.7, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarSelfName'}, selfNameStr)); // your own name under the blue arrow, a little see-through
     world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
@@ -4567,7 +4590,7 @@
       comp.innerHTML = '<svg viewBox="-24 -24 48 48" width="44" height="44" aria-hidden="true"><g transform="rotate(' + (-rot).toFixed(0) + ')"><text x="0" y="-15.5" text-anchor="middle" font-size="10" font-weight="800" fill="currentColor">N</text></g>' + needle + '</svg>';
       comp.setAttribute('data-heading', headingDeg === null ? '' : String(Math.round(facing))); comp.setAttribute('data-arrow', radarOpts.headUp ? 'map-turns' : 'arrow-turns'); }
     right.appendChild(comp);
-    { const m = radarMode(), lab = 'Map view ' + radarDisplayMode + ' of 5: ' + m.text + '. Press for the next view.';
+    { const m = radarMode(), lab = 'Map view ' + radarDisplayMode + ' of ' + RADAR_VIEWS + ': ' + m.text + '. Press for the next view.';
       const mb = radarButton('radarModeBtn', 'radarRound radarModeBtn' + (radarDisplayMode > 1 ? ' on' : ''), lab, RADAR_ICON.eye + '<span class="radarModeNum" aria-hidden="true">' + radarDisplayMode + '</span>', radarModeNext);
       mb.setAttribute('data-mode', String(radarDisplayMode)); leftCol.appendChild(mb); }
     stage.appendChild(leftCol);
@@ -4587,9 +4610,9 @@
       infoLine.appendChild(lg);
     }
     stack.appendChild(infoLine);
-    { // what the current map view (1 to 5) is showing: a green tick or a red cross for each layer
-      const sh = document.createElement('div'); sh.className = 'radarShowing'; sh.id = 'radarShowing'; sh.setAttribute('aria-label', 'Map view ' + radarDisplayMode + ' of 5 shows:');
-      for (const [key, label, on] of [['people', 'Other people', dm.people], ['places', 'Saved places', dm.marks], ['history', 'History', dm.tracks]]) {
+    { // what the current map view (1 to 6) is showing: a green tick or a red cross for each layer
+      const sh = document.createElement('div'); sh.className = 'radarShowing'; sh.id = 'radarShowing'; sh.setAttribute('aria-label', 'Map view ' + radarDisplayMode + ' of ' + RADAR_VIEWS + ' shows:');
+      for (const [key, label, on] of [['people', 'Other people', dm.people], ['places', 'Saved places', dm.marks], ['found', 'Found places', dm.found], ['history', 'History', dm.tracks]]) {
         const it = document.createElement('span'); it.className = 'radarShowItem ' + (on ? 'on' : 'off'); it.setAttribute('data-layer', key); it.setAttribute('data-shown', on ? 'yes' : 'no');
         const g = document.createElement('b'); g.className = 'radarShowMark'; g.textContent = on ? '\u2714' : '\u2716'; g.setAttribute('aria-hidden', 'true');
         it.appendChild(g); it.appendChild(document.createTextNode(' ' + label)); it.title = label + (on ? ': shown' : ': hidden'); it.setAttribute('aria-label', label + (on ? ': shown' : ': hidden'));
@@ -4616,7 +4639,7 @@
     if (replaying) tripReplayBarEl(stage, G);
     if (sel && !radarDrawer && !radarSheet && !replaying) radarCard(stage, sel, G);
     else if (markSel && !radarDrawer && !radarSheet && !replaying && !markPlacing) { findPick = null; markCardEl(stage, G, markSel); }
-    else if (findPick && radarFindKind !== null && !radarDrawer && !radarSheet && !replaying && !markPlacing) findCardEl(stage, G, findPick);
+    else if (findPick && radarFindKind !== null && dm.found && !radarDrawer && !radarSheet && !replaying && !markPlacing) findCardEl(stage, G, findPick);
     else if (pickedPoint && !radarDrawer && !radarSheet && !replaying && !markPlacing) coordCardEl(stage, G);
     radarDrawerEl(stage, withFix, noFix, G);
     if (radarSheet) radarSheetEl(stage, mapInfo, G);
