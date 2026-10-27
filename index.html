@@ -22,7 +22,7 @@
   #topBar .wifiLabel { font-size: 11px; opacity: 0.6; }
   #topBar .fwLabel { font-size: 10px; opacity: 0.4; }
   #topBar .wifiRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  #topBar .headCompass { font-size: 11px; font-weight: 700; color: #cfd8dc; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; } #topBar .headCompass svg { display: block; }
+  #chatColumnHeaders .headCompass { align-self: center; font-size: 12px; font-weight: 700; color: #cfd8dc; letter-spacing: normal; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; } #chatColumnHeaders .headCompass svg { display: block; width: 18px; height: 18px; }
   #topBar .headerButtons { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
   #soundToggle, #switchToHotspotBtn { background: #333; border: none; color: #eee; border-radius: 6px; padding: 6px 10px; font-size: 14px; }
   /* "Maximize messaging": the extra information above and below the messages is hidden so they get the room. Warnings, the contact
@@ -315,7 +315,8 @@
   .autoUndo, .autoView { min-height: 36px; padding: 4px 12px; border-radius: 8px; border: 1px solid #ffab91; background: #3a2a25; color: #ffccbc; font-size: 13px; }
   #toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); max-width: 86vw; background: #f1f5f9; color: #111; padding: 10px 16px; border-radius: 22px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.18s, transform 0.18s; z-index: 200; }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
-  .mapLoadingCard { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: 80%; background: #1e3a5f; color: #fff; border: 1px solid #4fc3f7; padding: 10px 16px; border-radius: 22px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,.45); pointer-events: none; }
+  .mapLoadingCard { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: 80%; background: rgba(30,58,95,0.5); color: #fff; border: 1px solid rgba(79,195,247,0.6); padding: 8px 14px; border-radius: 22px; font-size: 13px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.9); box-shadow: none; pointer-events: none; } /* see-through, and clicks pass straight through to the buttons underneath */
+  .radarStage.hasHeadHud .mapLoadingCard { top: 130px; }
   .mapSpinner { flex: none; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-top-color: #4fc3f7; border-radius: 50%; animation: mapSpin .9s linear infinite; }
   @keyframes mapSpin { to { transform: rotate(360deg); } }
   #busyPill { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); max-width: 86vw; background: #1e3a5f; color: #fff; border: 1px solid #4fc3f7; padding: 6px 14px; border-radius: 16px; font-size: 13px; z-index: 190; pointer-events: none; }
@@ -323,6 +324,7 @@
   .radarStatus .rsRight { margin-left: auto; }
   .radarStatus .rsOk { color: #66bb6a; } .radarStatus .rsWarn { color: #ffb74d; } .radarStatus .rsBad { color: #ef5350; font-weight: 700; }
   .radarStatus .rsBusy { color: var(--fl-on); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .radarFindOpt { display: block; width: 100%; text-align: left; background: #262626; color: #eee; border: 2px solid #3a3a3a; border-radius: 10px; padding: 10px 12px; font-size: 15px; min-height: 48px; margin: 6px 0; } .radarFindOpt:disabled { opacity: 0.45; }
   .radarAlways { display: flex; align-items: center; gap: 10px; } .radarAlwaysTick { color: #43a047; font-size: 18px; font-weight: 900; width: 22px; text-align: center; }
   .radarHeadHud { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; padding: 3px 12px 3px 4px; border-radius: 30px; background: rgba(16,16,16,0.82); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; }
   .radarHeadHud .rcText { display: flex; flex-direction: column; line-height: 1.1; }
@@ -330,7 +332,7 @@
   .radarStage.hasHeadHud .radarBanners { top: 126px; }
   .radarBanners { position: absolute; top: 34px; left: 70px; right: 70px; z-index: 3; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
   .radarBanners > * { pointer-events: auto; }
-  .radarStage .radarBanners .mapWarn { position: static; }
+  .radarStage .radarBanners .mapWarn { position: static; background: rgba(90,61,0,0.62); }
   .radarMark { cursor: pointer; } .radarMark:focus { outline: none; } .radarMark:focus-visible .markBadge { stroke: #ffffff; stroke-width: 4; }
   .placeBtn { border-color: #b39ddb; background: #2b2538; color: #d1c4e9; }
   .meetBtn { margin-top: 4px; min-height: 40px; padding: 6px 12px; border-radius: 8px; border: 1px solid #ffab91; background: #3a2a25; color: #ffccbc; font-size: 13px; }
@@ -451,7 +453,7 @@
       <span class="peerArrow">→</span>
       <span class="title" id="topPeerName"></span>
     </div>
-    <div class="wifiRow" id="wifiRow"><span class="wifiLabel" id="wifiLabel"></span><span class="headCompass" id="headCompass" style="display:none"></span></div>
+    <div class="wifiRow" id="wifiRow"><span class="wifiLabel" id="wifiLabel"></span></div>
     <span class="fwLabel" id="myLocLabel"></span>
     <span class="fwLabel" id="fwLabel"></span>
     <span class="fwLabel" id="batteryLabel"></span>
@@ -536,6 +538,7 @@
     <span class="colHeaderReceived">Received</span>
     <span id="receivedNote"></span>
   </div>
+  <span class="headCompass" id="headCompass" style="display:none"></span>
   <span class="colHeaderSent">Sent</span>
 </div>
 <div id="chat"></div>
@@ -1444,9 +1447,22 @@
     4: {name: 'trails', stroke: '#6fbf73', w: 1, dash: '3 2', maxMiles: 8},
     5: {name: 'park edges', stroke: '#9f7aea', w: 0.9, dash: '5 3', maxMiles: 40},
     6: {name: 'railways', stroke: '#9ca3af', w: 0.9, dash: '2 2', maxMiles: 40},
-    7: {name: 'buildings', stroke: '#8a7f72', w: 0.7, maxMiles: 1.5}   // only when zoomed right in; only the "plus buildings" level of detail makes them
+    7: {name: 'buildings', stroke: '#8a7f72', w: 0.7, maxMiles: 1.5},   // only when zoomed right in; only the "plus buildings" level of detail makes them
+    8: {name: 'forests', stroke: '#3f7d3a', w: 0.6, maxMiles: 12},
+    9: {name: 'wetlands', stroke: '#3d9c8f', w: 0.6, maxMiles: 12},
+    10: {name: 'beaches', stroke: '#d9bf63', w: 0.8, maxMiles: 12},
+    11: {name: 'fences', stroke: '#a08060', w: 0.6, dash: '1 2', maxMiles: 1.5},
+    12: {name: 'driveways', stroke: '#9aa0a8', w: 0.7, maxMiles: 1.5},
+    13: {name: 'easy trails', stroke: '#4fc36f', w: 1, dash: '3 2', maxMiles: 8},
+    14: {name: 'moderate trails', stroke: '#4a90e2', w: 1, dash: '3 2', maxMiles: 8},
+    15: {name: 'hard trails', stroke: '#ef5350', w: 1, dash: '3 2', maxMiles: 8}
   };
-  const MAP_DRAW_ORDER = [5, 6, 1, 7, 3, 4, 2];  // underneath first
+  // Points to find (stored as places with these kinds; towns are 1 to 4)
+  const MAP_POI = {10: {name: 'Trailheads', one: 'Trailhead', color: '#8bc34a', glyph: '\uD83E\uDD7E'}, 11: {name: 'Water', one: 'Drinking water', color: '#4fc3f7', glyph: '\uD83D\uDCA7'}, 12: {name: 'Fuel', one: 'Fuel', color: '#ffb74d', glyph: '\u26FD'},
+    13: {name: 'Hospitals', one: 'Hospital', color: '#ef5350', glyph: '\uD83C\uDFE5'}, 14: {name: 'Parks', one: 'Park', color: '#ba68c8', glyph: '\uD83C\uDF33'}, 15: {name: 'Beaches', one: 'Beach', color: '#ffd54f', glyph: '\uD83C\uDFD6\uFE0F'},
+    16: {name: 'Restrooms', one: 'Restroom', color: '#90a4ae', glyph: '\uD83D\uDEBB'}, 17: {name: 'Grocery stores', one: 'Grocery store', color: '#aed581', glyph: '\uD83D\uDED2'}, 18: {name: 'Lodging', one: 'Lodging', color: '#f48fb1', glyph: '\uD83D\uDECF\uFE0F'}, 19: {name: 'Police', one: 'Police', color: '#64b5f6', glyph: '\uD83D\uDE93'}};
+  const mapLabelCls = (c) => (c >= 13 && c <= 15 ? 4 : c); // easy, moderate and hard trails are all "trails" for names and for the Trails switch
+  const MAP_DRAW_ORDER = [10, 9, 8, 5, 6, 1, 7, 12, 11, 3, 4, 13, 14, 15, 2];  // underneath first
   const MAP_MAX_DRAWN_VERTS = 25000;          // per class, so one busy map cannot slow the radar down
 
   // The board stores the file under a name made from this one. It must give exactly the same answer as
@@ -1494,10 +1510,11 @@
   }
   function mapEncode(map) { // version 2: a table of names, a name index on each line, and named places (towns etc.)
     const names = [], ids = new Map();
-    const nameId = (n) => { n = mapClipName(n, MAP_LABEL_MAX_BYTES); if (!n) return 0; let i = ids.get(n); if (!i) { names.push(n); i = names.length; ids.set(n, i); } return i; };
+    const nameId = (n, max) => { n = mapClipName(n, max || MAP_LABEL_MAX_BYTES); if (!n) return 0; let i = ids.get(n); if (!i) { names.push(n); i = names.length; ids.set(n, i); } return i; };
     const wayIds = map.ways.map(w => nameId(w.name));
-    const places = (map.places || []).map(p => ({kind: p.kind, pt: p.pt, id: nameId(p.name)})).filter(p => p.id);
-    const out = [0x4C, 0x43, 0x4D, 0x31, 2];
+    const places = (map.places || []).map(p => ({kind: p.kind, pt: p.pt, id: nameId(p.name), did: p.detail ? nameId(p.detail, 60) : 0})).filter(p => p.id);
+    const v3 = places.some(p => p.did); // details (hours, phone, address) need the newer layout; a map without any stays readable by older pages
+    const out = [0x4C, 0x43, 0x4D, 0x31, v3 ? 3 : 2];
     const i32 = (v) => { v = Math.round(v) | 0; out.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255); };
     i32(map.lat0 * 1e6); i32(map.lon0 * 1e6);
     mapPutU(out, Math.round(map.half));
@@ -1514,7 +1531,7 @@
       for (const p of w.pts) { mapPutVar(out, p[0] - px); mapPutVar(out, p[1] - py); px = p[0]; py = p[1]; }
     });
     mapPutU(out, places.length);
-    for (const p of places) { out.push(p.kind); mapPutU(out, p.id); mapPutVar(out, p.pt[0]); mapPutVar(out, p.pt[1]); }
+    for (const p of places) { out.push(p.kind); mapPutU(out, p.id); if (v3) mapPutU(out, p.did); mapPutVar(out, p.pt[0]); mapPutVar(out, p.pt[1]); }
     return Uint8Array.from(out);
   }
   function mapDecode(u8) {
@@ -1522,7 +1539,7 @@
     const fail = (why) => { throw new Error('This is not a valid map file (' + why + ').'); };
     if (u8.length < 20 || u8[0] !== 0x4C || u8[1] !== 0x43 || u8[2] !== 0x4D || u8[3] !== 0x31) fail('wrong header');
     const ver = u8[4];
-    if (ver !== 1 && ver !== 2) fail('unknown version');
+    if (ver !== 1 && ver !== 2 && ver !== 3) fail('unknown version');
     p = 5;
     const i32 = () => { if (p + 4 > u8.length) fail('cut short'); const v = (u8[p] << 24) | (u8[p + 1] << 16) | (u8[p + 2] << 8) | u8[p + 3]; p += 4; return v; };
     const varint = () => { let r = 0, mul = 1, b; do { if (p >= u8.length) fail('cut short'); b = u8[p++]; r += (b & 127) * mul; mul *= 128; if (mul > 34359738368) fail('bad number'); } while (b & 128); return r; };
@@ -1533,7 +1550,7 @@
     const nl = u8[p++]; if (p + nl > u8.length) fail('cut short');
     const name = new TextDecoder().decode(u8.subarray(p, p + nl)); p += nl;
     const names = [];
-    if (ver === 2) {
+    if (ver >= 2) {
       const nNames = varint(); if (nNames > MAP_MAX_NAMES) fail('too many names');
       for (let i = 0; i < nNames; i++) {
         if (p >= u8.length) fail('cut short');
@@ -1545,7 +1562,7 @@
     const ways = []; let total = 0;
     for (let i = 0; i < nWays; i++) {
       if (p >= u8.length) fail('cut short');
-      const cls = u8[p++], n = varint(), nm = ver === 2 ? varint() : 0;
+      const cls = u8[p++], n = varint(), nm = ver >= 2 ? varint() : 0;
       total += n; if (n < 2 || total > MAP_MAX_POINTS) fail('bad line');
       if (nm > names.length) fail('bad name');
       const x = new Int32Array(n), y = new Int32Array(n);
@@ -1557,12 +1574,13 @@
       ways.push({cls: cls, n: n, nm: nm, x: x, y: y, minX: minX, maxX: maxX, minY: minY, maxY: maxY});
     }
     const places = [];
-    if (ver === 2) {
+    if (ver >= 2) {
       const nPlaces = varint(); if (nPlaces > MAP_MAX_PLACES) fail('too many places');
       for (let i = 0; i < nPlaces; i++) {
         if (p >= u8.length) fail('cut short');
-        const kind = u8[p++], nm = varint(); if (kind < 1 || kind > 4 || nm < 1 || nm > names.length) fail('bad place');
-        places.push({kind: kind, nm: nm, x: zig(), y: zig()});
+        const kind = u8[p++], nm = varint(); if (!((kind >= 1 && kind <= 4) || (kind >= 10 && kind <= 19)) || nm < 1 || nm > names.length) fail('bad place');
+        const dt = ver === 3 ? varint() : 0; if (dt > names.length) fail('bad place');
+        places.push({kind: kind, nm: nm, dt: dt, x: zig(), y: zig()});
       }
     }
     if (p !== u8.length) fail('extra data at the end');
@@ -1582,7 +1600,7 @@
   const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
   const MAP_CHUNK_MILES = {bldg: 2, all: 6, main: 12, basic: 25};  // the area is fetched in squares this wide, so no single request is heavy
   const MAP_MAX_CHUNKS = 64;
-  const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2, 7: 1}; // line-simplifying tolerance, in 2 m steps
+  const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2, 7: 1, 8: 6, 9: 5, 10: 4, 11: 2, 12: 1.5, 13: 2, 14: 2, 15: 2}; // line-simplifying tolerance, in 2 m steps
 
   function mapBoxFor(lat, lon, radiusMiles) {
     const m = radiusMiles * 1609.344, dLat = m / 110540, dLon = m / (111320 * Math.cos(lat * Math.PI / 180));
@@ -1596,7 +1614,8 @@
     }
     return out;
   }
-  function overpassQuery(b, detailIn) {
+  function overpassQuery(b, detailIn, extras) {
+    extras = extras || {};
     const detail = detailIn === 'bldg' ? 'all' : detailIn; // buildings are "everything" plus one more kind of line
     const bb = '(' + [b.s, b.w, b.n, b.e].map(v => v.toFixed(5)).join(',') + ')';
     const major = 'motorway|trunk|primary|secondary|motorway_link|trunk_link|primary_link|secondary_link';
@@ -1607,21 +1626,40 @@
       q.push('way["railway"~"^(rail|light_rail|narrow_gauge)$"]' + bb);
     }
     q.push('node["place"~"^(' + ({all: 'city|town|village|hamlet|suburb|neighbourhood', main: 'city|town|village|hamlet', basic: 'city|town'}[detail] || 'city|town') + ')$"]' + bb); // towns etc., for labels
-    if (detail === 'all') { q.push('way["boundary"="protected_area"]' + bb, 'way["leisure"="nature_reserve"]' + bb, 'rel["boundary"="protected_area"]' + bb); }
+    if (detail === 'all') { q.push('way["boundary"="protected_area"]' + bb, 'way["boundary"="national_park"]' + bb, 'way["leisure"~"^(nature_reserve|park)$"]' + bb, 'rel["boundary"~"^(protected_area|national_park)$"]' + bb); }
+    if (detail === 'all') { // the extras the person ticked
+      if (extras.land) q.push('way["landuse"="forest"]' + bb, 'way["natural"~"^(wood|wetland|beach)$"]' + bb, 'rel["landuse"="forest"]' + bb, 'rel["natural"~"^(wood|wetland)$"]' + bb);
+      if (extras.fences) q.push('way["barrier"="fence"]' + bb);
+      if (extras.drives) q.push('way["highway"="service"]["service"="driveway"]' + bb);
+    }
+    if (extras.poi) q.push('node["highway"="trailhead"]' + bb, 'node["amenity"~"^(drinking_water|fuel|hospital|toilets|police)$"]' + bb, 'way["amenity"~"^(fuel|hospital|toilets|police)$"]' + bb, 'node["shop"~"^(supermarket|grocery|convenience)$"]' + bb, 'way["shop"~"^(supermarket|grocery|convenience)$"]' + bb, 'node["tourism"~"^(hotel|motel|hostel|guest_house)$"]' + bb, 'way["tourism"~"^(hotel|motel|hostel|guest_house)$"]' + bb, 'way["leisure"~"^(park|nature_reserve)$"]["name"]' + bb, 'way["natural"="beach"]' + bb, 'node["natural"="beach"]' + bb);
     if (detailIn === 'bldg') q.push('way["building"]["building"!="no"]' + bb);
     return '[out:json][timeout:90];\n(\n  ' + q.join(';\n  ') + ';\n);\nout geom;';
+  }
+  // A trail's difficulty, when the map data says: easy 13, moderate 14, hard 15; 4 when it is not rated.
+  function mapTrailClass(tags) {
+    const sac = tags.sac_scale || '', mtb = parseInt(tags['mtb:scale'], 10);
+    if (/^(demanding_mountain_hiking|alpine_hiking|demanding_alpine_hiking|difficult_alpine_hiking)$/.test(sac) || mtb >= 3) return 15;
+    if (sac === 'mountain_hiking' || mtb === 1 || mtb === 2) return 14;
+    if (sac === 'hiking' || mtb === 0) return 13;
+    return 4;
   }
   function mapClassOf(tags) { // 0 = not drawn
     if (!tags) return 0;
     if (tags.natural === 'coastline' || tags.natural === 'water' || tags.waterway) return 1;
+    if (tags.barrier === 'fence') return 11;
+    if (tags.natural === 'wetland') return 9;
+    if (tags.natural === 'beach') return 10;
+    if (tags.landuse === 'forest' || tags.natural === 'wood') return 8;
     const h = tags.highway;
     if (h) {
+      if (h === 'service') return tags.service === 'driveway' ? 12 : 0;
       if (/^(motorway|trunk|primary|secondary)(_link)?$/.test(h)) return 2;
       if (/^(tertiary|tertiary_link|unclassified|residential|living_street)$/.test(h)) return 3;
-      if (/^(path|footway|track|bridleway|cycleway)$/.test(h)) return (tags.footway === 'sidewalk' || tags.footway === 'crossing') ? 0 : 4;
+      if (/^(path|footway|track|bridleway|cycleway)$/.test(h)) return (tags.footway === 'sidewalk' || tags.footway === 'crossing') ? 0 : mapTrailClass(tags);
       return 0;
     }
-    if (tags.boundary === 'protected_area' || tags.leisure === 'nature_reserve') return 5;
+    if (tags.boundary === 'protected_area' || tags.boundary === 'national_park' || tags.leisure === 'nature_reserve' || tags.leisure === 'park') return 5;
     if (/^(rail|light_rail|narrow_gauge)$/.test(tags.railway || '')) return 6;
     if (tags.building && tags.building !== 'no') return 7;
     return 0;
@@ -1629,7 +1667,7 @@
   // The lines in an Overpass reply: ways carry their own geometry, and the outlines of big lakes and parks
   // are relations whose member ways carry it. Each way is returned once however many times it appears.
   function mapNameOf(tags, cls) { // the label for a line: its name, or for roads its reference (such as US 19)
-    if (!tags || cls === 6 || cls === 7) return '';
+    if (!tags || cls === 6 || cls === 7 || cls === 11 || cls === 12) return '';
     return mapClipName(tags.name || tags['name:en'] || ((cls === 2 || cls === 3) ? tags.ref : '') || '', MAP_LABEL_MAX_BYTES);
   }
   function parseOverpass(json, seen) {
@@ -1661,6 +1699,25 @@
       if (!kind || !name || seen.has('n' + el.id)) continue;
       seen.add('n' + el.id);
       out.push({kind: kind, lat: el.lat, lon: el.lon, name: name});
+    }
+    return out;
+  }
+  // Points to find: trailheads, drinking water, fuel, hospitals, parks and beaches (a building or an area is reduced to its middle).
+  function parseOverpassPois(json, seen) {
+    const out = [];
+    for (const el of (json && Array.isArray(json.elements)) ? json.elements : []) {
+      if (!el || (el.type !== 'node' && el.type !== 'way') || !el.tags) continue;
+      const t = el.tags;
+      const kind = t.highway === 'trailhead' ? 10 : t.amenity === 'drinking_water' ? 11 : t.amenity === 'fuel' ? 12 : t.amenity === 'hospital' ? 13 : (t.leisure === 'park' || t.leisure === 'nature_reserve') ? 14 : t.natural === 'beach' ? 15 : t.amenity === 'toilets' ? 16 : /^(supermarket|grocery|convenience)$/.test(t.shop || '') ? 17 : /^(hotel|motel|hostel|guest_house)$/.test(t.tourism || '') ? 18 : t.amenity === 'police' ? 19 : 0;
+      if (!kind || seen.has('p' + kind + el.type + el.id)) continue;
+      let lat, lon;
+      if (el.type === 'node') { lat = el.lat; lon = el.lon; }
+      else if (Array.isArray(el.geometry) && el.geometry.length) { const g = el.geometry.filter(q => q && typeof q.lat === 'number' && typeof q.lon === 'number'); if (!g.length) continue; lat = (Math.min(...g.map(q => q.lat)) + Math.max(...g.map(q => q.lat))) / 2; lon = (Math.min(...g.map(q => q.lon)) + Math.max(...g.map(q => q.lon))) / 2; }
+      if (typeof lat !== 'number' || typeof lon !== 'number') continue;
+      seen.add('p' + kind + el.type + el.id);
+      const addr = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '), ph = t.phone || t['contact:phone'], hrs = t.opening_hours || '';
+      const detail = mapClipName([hrs ? 'Hours ' + hrs : '', ph ? 'Ph ' + ph : '', addr, t.access && t.access !== 'yes' ? 'Access: ' + t.access : '', kind === 16 && t.fee ? 'Fee: ' + t.fee : '', t.wheelchair ? 'Wheelchair: ' + t.wheelchair : ''].filter(Boolean).join(' \u00B7 '), 60);
+      out.push({kind: kind, lat: lat, lon: lon, name: mapClipName(t.name || t['name:en'] || t.brand || t.operator || MAP_POI[kind].one, MAP_LABEL_MAX_BYTES), detail: detail});
     }
     return out;
   }
@@ -1701,14 +1758,14 @@
     const kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110540, lim = halfM * 1.05, out = [];
     for (const pl of places) {
       const x = Math.round((pl.lon - lon0) * kx / MAP_UNIT_M), y = Math.round((pl.lat - lat0) * ky / MAP_UNIT_M);
-      if (Math.abs(x * MAP_UNIT_M) <= lim && Math.abs(y * MAP_UNIT_M) <= lim) out.push({kind: pl.kind, pt: [x, y], name: pl.name});
+      if (Math.abs(x * MAP_UNIT_M) <= lim && Math.abs(y * MAP_UNIT_M) <= lim) out.push({kind: pl.kind, pt: [x, y], name: pl.name, detail: pl.detail || ''});
     }
     return out;
   }
   // Which lines to keep when everything will not fit: the important ones first, and the minor ones
   // fade out with distance from the centre (streets far away go before trails, trails before main roads).
-  const MAP_BASE = {1: 100, 2: 90, 4: 55, 6: 50, 5: 45, 3: 40, 7: 25};
-  const MAP_DECAY = {1: 0.05, 2: 0.15, 4: 0.8, 6: 0.3, 5: 0.5, 3: 2.0, 7: 3.0}; // buildings come after every street and trail, nearest the centre first
+  const MAP_BASE = {1: 100, 2: 90, 4: 55, 13: 55, 14: 55, 15: 55, 6: 50, 5: 45, 10: 45, 3: 40, 8: 35, 9: 35, 12: 20, 11: 15, 7: 25};
+  const MAP_DECAY = {1: 0.05, 2: 0.15, 4: 0.8, 13: 0.8, 14: 0.8, 15: 0.8, 6: 0.3, 5: 0.5, 10: 0.6, 3: 2.0, 8: 1.2, 9: 1.0, 12: 3.5, 11: 3.5, 7: 3.0}; // buildings come after every street and trail, nearest the centre first
   function mapFit(ways, budgetBytes, headerBytes) {
     const scored = ways.map((w, i) => {
       let dMin = Infinity;
@@ -1760,18 +1817,22 @@
     const chunks = mapSplitBox(box, chunkMi);
     if (chunks.length > MAP_MAX_CHUNKS) throw new Error('That area is too large for this level of detail (' + chunks.length + ' downloads). Choose a smaller radius or less detail.');
     const halfM = Math.round(params.radiusMiles * 1609.344), seen = new Set(), all = [];
-    let places = [];
+    let places = [], pois = [];
     let rawSeen = 0;
+    const extras = params.extras || {};
     for (let i = 0; i < chunks.length; i++) {
       hooks.onProgress(i, chunks.length, 'Downloading part ' + (i + 1) + ' of ' + chunks.length + '\u2026');
-      const json = await overpassFetch(overpassQuery(chunks[i], params.detail), hooks);
+      const json = await overpassFetch(overpassQuery(chunks[i], params.detail, extras), hooks);
       const parsed = parseOverpass(json, seen);
       rawSeen += parsed.length;
       for (const w of mapPrepare(parsed, params.lat, params.lon, halfM)) all.push(w);
       for (const pl of mapPreparePlaces(parseOverpassPlaces(json, seen), params.lat, params.lon, halfM)) places.push(pl);
+      if (extras.poi) for (const pl of mapPreparePlaces(parseOverpassPois(json, seen), params.lat, params.lon, halfM)) pois.push(pl);
     }
     places.sort((a, b) => a.kind - b.kind || (a.name < b.name ? -1 : 1));
     places = places.slice(0, 400); // the biggest places first
+    pois.sort((a, b) => Math.hypot(a.pt[0], a.pt[1]) - Math.hypot(b.pt[0], b.pt[1]));
+    places = places.concat(pois.slice(0, 800)); // and the points to find nearest the centre
     hooks.onProgress(chunks.length, chunks.length, 'Fitting the map to ' + Math.round(params.budgetBytes / 1024) + ' KB\u2026');
     const created = Math.floor(hooks.now() / 1000), mk = (ways) => ({name: params.name, lat0: params.lat, lon0: params.lon, half: halfM, created: created, ways: ways, places: places});
     const header = mapEncode(mk([])).length; // includes the places, which are always kept
@@ -1799,7 +1860,7 @@
   const mapCache = new Map();    // "name:buildtime" -> {state: 'loading' | 'ready' | 'error', map, error}
   let mapShow = true;            // draw the map under the radar and coverage views
   try { mapShow = localStorage.getItem('loraMapShow') !== '0'; } catch (e) { /* no storage: keep the default */ }
-  const mapForm = {name: '', centre: 'me', typed: '', radius: 12, detail: 'all', budgetKb: 400}; // held here so a redraw cannot reset what was chosen
+  const mapForm = {name: '', centre: 'me', typed: '', radius: 12, detail: 'all', budgetKb: 400, extras: {poi: true, land: true, fences: false, drives: false}}; // held here so a redraw cannot reset what was chosen
   const mapBuildState = {phase: 'idle', text: '', done: 0, total: 0, result: null, ctl: null};
   let mapsNote = '';
   const MAP_RADII = {bldg: [1, 2, 3], all: [3, 6, 12], main: [3, 6, 12, 25], basic: [12, 25, 50, 75, 100]};
@@ -1951,13 +2012,28 @@
     minimal: {title: 'Minimal', about: 'Only main roads and water. The least clutter.', light: false, bg: '#101010', ink: '#eeeeee', sub: '#a8a8a8', ring: 'rgba(255,255,255,0.18)', halo: '#101010', labels: MAP_LABEL_COLOR,
       c: {1: {stroke: '#4a98e0', w: 1.5, fill: '#143247'}, 2: {stroke: '#d6d6d6', w: 1.8}}}
   };
+  for (const [id, v] of Object.entries(MAP_VIEWS)) { // forests, wetlands, beaches, fences, driveways and rated trails in every view except Minimal
+    if (id === 'minimal') continue;
+    const L = v.light, c = v.c, dim = id === 'roads' || id === 'water';
+    Object.assign(c, {
+      8: {stroke: L ? '#4a8f45' : '#3f7d3a', w: 0.6, fill: L ? '#cfe6c4' : (dim ? '#101a12' : '#14261a')},
+      9: {stroke: L ? '#3d9c8f' : '#3d9c8f', w: 0.6, fill: L ? '#c6e8e2' : (dim ? '#0f1c1c' : '#12302e')},
+      10: {stroke: L ? '#b8993a' : '#d9bf63', w: 0.8, fill: L ? '#f2e3b0' : (dim ? '#2a2614' : '#4a421f')},
+      11: {stroke: L ? '#7a5c3a' : '#a08060', w: 0.7, dash: '1 2'},
+      12: {stroke: L ? '#ffffff' : '#9aa0a8', w: L ? 1.2 : 0.8, casing: L ? '#8a8a8a' : undefined, casingW: L ? 2.4 : undefined},
+      13: {stroke: L ? '#1f8f3c' : '#4fc36f', w: L ? 1.8 : 1.4, dash: '3 2'},
+      14: {stroke: L ? '#1f63c0' : '#4a90e2', w: L ? 1.8 : 1.4, dash: '3 2'},
+      15: {stroke: L ? '#c62828' : '#ef5350', w: L ? 1.8 : 1.4, dash: '3 2'}
+    });
+    if (!c[12].casing) { delete c[12].casing; delete c[12].casingW; }
+  }
   const mapLabels = {roads: true, streets: true, trails: true, water: true, parks: true, places: true};
   try { const saved = JSON.parse(localStorage.getItem('loraMapLabels') || '{}'); for (const k of Object.keys(mapLabels)) if (saved[k] === false) mapLabels[k] = false; } catch (e) { /* no saved choice */ }
 
   function mapLabelCounts(map) { // how many names of each kind this map holds
     if (map.labelCounts) return map.labelCounts;
-    const c = {roads: 0, streets: 0, trails: 0, water: 0, parks: 0, places: map.places ? map.places.length : 0};
-    for (const w of map.ways) if (w.nm) for (const [t, cls] of Object.entries(MAP_LABEL_CLASS)) if (w.cls === cls) c[t]++;
+    const c = {roads: 0, streets: 0, trails: 0, water: 0, parks: 0, places: map.places ? map.places.filter(pl => pl.kind <= 4).length : 0};
+    for (const w of map.ways) if (w.nm) for (const [t, cls] of Object.entries(MAP_LABEL_CLASS)) if (mapLabelCls(w.cls) === cls) c[t]++;
     map.labelCounts = c;
     return c;
   }
@@ -1990,7 +2066,7 @@
     const inView = (x, y) => x >= lv.minX && x <= lv.maxX && y >= lv.minY && y <= lv.maxY;
     const cands = [];
     if (on.places && map.places) for (const pl of map.places) {
-      if (visibleMiles > MAP_LABEL_MILES.places[pl.kind]) continue;
+      if (pl.kind > 4 || visibleMiles > MAP_LABEL_MILES.places[pl.kind]) continue; // (points to find have no name on the map; Find shows them)
       if (inLater(pl.x, pl.y)) continue;
       const x = X(pl.x, pl.y), y = Y(pl.x, pl.y);
       if (inView(x, y)) cands.push({prio: MAP_LABEL_PRIO.places - pl.kind * 3, type: 'places', text: map.names[pl.nm - 1], x: x, y: y, fs: pl.kind === 1 ? 12 : pl.kind === 2 ? 11 : 9.5, place: true});
@@ -1998,7 +2074,7 @@
     for (const type of Object.keys(MAP_LABEL_CLASS)) {
       if (!on[type] || visibleMiles > MAP_LABEL_MILES[type]) continue;
       for (const w of map.ways) {
-        if (w.cls !== MAP_LABEL_CLASS[type] || !w.nm) continue;
+        if (mapLabelCls(w.cls) !== MAP_LABEL_CLASS[type] || !w.nm) continue;
         const bb = mapWayBox(tf, w);
         if (bb.x1 < view.minX || bb.x0 > view.maxX || bb.y1 < view.minY || bb.y0 > view.maxY) continue;
         if (inLater((w.minX + w.maxX) / 2, (w.minY + w.maxY) / 2)) continue;
@@ -2133,7 +2209,7 @@
     if (view.clipId) g.setAttribute('clip-path', 'url(#' + view.clipId + ')');
     for (const cls of MAP_DRAW_ORDER) {
       const st = MAP_STYLE[cls], vs = styles[cls];
-      if (!vs || hidden[cls] || visibleMiles > st.maxMiles) continue; // not in this view, switched off, or too far out to be useful
+      if (!vs || hidden[cls] || (cls >= 13 && cls <= 15 && hidden[4]) || visibleMiles > st.maxMiles) continue; // not in this view, switched off, or too far out to be useful
       let d = '', fillD = '', verts = 0;
       for (const w of map.ways) {
         if (w.cls !== cls) continue;
@@ -2150,7 +2226,7 @@
         }
         d += seg;
         if (vs.fill && w.n >= 4 && w.x[0] === w.x[w.n - 1] && w.y[0] === w.y[w.n - 1]) fillD += seg + 'Z'; // a closed outline (a lake, a park) is filled
-        if (verts > (cls === 7 ? 60000 : MAP_MAX_DRAWN_VERTS)) break;
+        if (verts > ((cls === 7 || cls === 11 || cls === 12) ? 60000 : MAP_MAX_DRAWN_VERTS)) break;
       }
       if (!d) continue;
       if (fillD) g.appendChild(svgEl('path', {d: fillD, fill: vs.fill, stroke: 'none', class: 'mapFill mapFill' + cls}));
@@ -2298,7 +2374,7 @@
     Object.assign(mapBuildState, {phase: 'running', text: 'Starting\u2026', note: '', done: 0, total: 1, result: null, ctl: ctl});
     renderMap();
     try {
-      const res = await mapBuild({name: name, lat: c.lat, lon: c.lon, radiusMiles: mapForm.radius, detail: mapForm.detail, budgetBytes: Math.min(mapForm.budgetKb * 1024, MAP_MAX_BYTES)}, {
+      const res = await mapBuild({name: name, lat: c.lat, lon: c.lon, radiusMiles: mapForm.radius, detail: mapForm.detail, extras: Object.assign({}, mapForm.extras, mapForm.detail === 'main' ? {land: false, fences: false, drives: false} : mapForm.detail === 'basic' ? {poi: false, land: false, fences: false, drives: false} : {}), budgetBytes: Math.min(mapForm.budgetKb * 1024, MAP_MAX_BYTES)}, {
         fetch: (u, o) => fetch(u, o), sleep: (ms) => new Promise(r => setTimeout(r, ms)), signal: ctl.signal, now: () => Date.now(),
         onProgress: (d, t, text) => { mapBuildState.done = d; mapBuildState.total = t; mapBuildState.text = text; if (mapIsOpen()) renderMap(); },
         onNote: (text) => { mapBuildState.note = text; if (mapIsOpen()) renderMap(); }
@@ -2358,6 +2434,17 @@
     if (mapForm.detail === 'bldg') form.appendChild(mk('div', 'mapSub', 'Buildings make the file big, so this level covers a small area. They show only when you zoom in close (under about a mile and a half across), and they are the first thing dropped if the size limit is reached.'));
     if (mapForm.detail === 'basic' && mapForm.radius >= 50) form.appendChild(mk('div', 'mapSub', 'A wide, simple map: main roads, rivers, lakes and towns only. Make smaller detailed maps inside it and the radar draws them on top, so the detail fills in wherever you have one.'));
     field('Detail', sel('mapDetail', [['bldg', 'Everything plus buildings (small area)'], ['all', 'Everything: streets, trails, water'], ['main', 'Main roads, trails and water'], ['basic', 'Main roads and water only']], mapForm.detail, v => { mapForm.detail = v; if (!MAP_RADII[v].includes(mapForm.radius)) mapForm.radius = MAP_RADII[v][MAP_RADII[v].length - 1]; renderMap(); }));
+    { // what else to put in the map (rated trails are always included when trails are)
+      const opts = [['poi', 'Points to find: trailheads, water, fuel, hospitals, parks, beaches', ['all', 'main', 'bldg']], ['land', 'Forests, wetlands and beaches', ['all', 'bldg']], ['fences', 'Fences (adds a lot of lines)', ['all', 'bldg']], ['drives', 'Driveways', ['all', 'bldg']]];
+      const box = mk('div', 'mapExtras'); box.id = 'mapExtras';
+      for (const [key, label, levels] of opts) {
+        if (levels.indexOf(mapForm.detail) < 0) continue;
+        const l = mk('label', 'mapExtra'); l.style.cssText = 'display:flex;gap:8px;align-items:center;margin:6px 0;font-size:14px;';
+        const cb = mk('input'); cb.type = 'checkbox'; cb.id = 'mapExtra_' + key; cb.checked = !!mapForm.extras[key]; cb.onchange = () => { mapForm.extras[key] = cb.checked; };
+        l.appendChild(cb); l.appendChild(mk('span', '', label)); box.appendChild(l);
+      }
+      if (box.children.length) { box.insertBefore(mk('div', 'mapSub', 'Also include'), box.firstChild); form.appendChild(box); }
+    }
     field('Radius', sel('mapRadius', MAP_RADII[mapForm.detail].map(r => [r, r + (r === 1 ? ' mile (' : ' miles (') + 2 * r + ' \u00D7 ' + 2 * r + ' mi)']), mapForm.radius, v => { mapForm.radius = parseInt(v, 10); }));
     field('Size limit', sel('mapBudget', [[200, '200 KB'], [400, '400 KB'], [600, '600 KB']], mapForm.budgetKb, v => { mapForm.budgetKb = parseInt(v, 10); }));
     if (mapForm.detail !== 'basic') { const hint = mk('div', 'mapSub', 'Want a bigger area (up to 100 miles)? Set Detail to \u201CMain roads and water only\u201D and the larger radii appear here.'); hint.id = 'mapBigHint'; form.appendChild(hint); }
@@ -3790,7 +3877,7 @@
   try {
     const sv = JSON.parse(localStorage.getItem(RADAR_OPTS_KEY) || '{}');
     if (sv && MAP_VIEWS[sv.view]) radarOpts.view = sv.view;
-    if (sv && sv.hidden && typeof sv.hidden === 'object') for (const c of [1, 2, 3, 4, 5, 6, 7]) if (sv.hidden[c] === true) radarOpts.hidden[c] = true;
+    if (sv && sv.hidden && typeof sv.hidden === 'object') for (const c of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) if (sv.hidden[c] === true) radarOpts.hidden[c] = true;
     for (const k of ['rings', 'trails']) if (sv && sv[k] === false) radarOpts[k] = false;
     for (const k of ['signal', 'headUp', 'arrowHeading']) if (sv && sv[k] === true) radarOpts[k] = true;
   } catch (e) { /* no saved choices */ }
@@ -3799,6 +3886,8 @@
   let radarCentre = null;          // {lat, lon} the view is centred on after dragging or "centre here"; null = centred on you
   let radarSelected = null;        // the id of the person whose details are showing
   let radarDrawer = false;         // the people list is pulled up
+  let findPick = null;              // the arrow you tapped in Find: {kind, name, detail, lat, lon, miles}
+  let radarFindKind = null;        // Find: which kind of place has arrows on the map (10 to 15, see MAP_POI), or null
   let radarSheet = null;           // 'layers' | 'help' | null
   let radarDragging = false, radarSuppressClick = false, radarDirty = false, radarResizeTimer = null;
 
@@ -3854,7 +3943,22 @@
     window.removeEventListener('deviceorientationabsolute', onCompass, true);
     window.removeEventListener('deviceorientation', onCompass, true);
   }
-  const radarRotation = () => (radarOpts.headUp && compassOffered() && compassFresh() ? compassHeading : 0);
+  // The way you are heading: the GPS course while you move, else the phone's compass when it reports.
+  function facingNow() {
+    const mo = selfMotion();
+    if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) return {deg: mo.headingDeg, by: 'gps'};
+    if (compassOffered() && compassFresh()) return {deg: compassHeading, by: 'compass'};
+    return null;
+  }
+  // How far the map is turned. North-up mode never turns it. Heading-up mode turns it to the way you head (the same heading the blue arrow uses, so the arrow stays
+  // pointing up), and when no heading is available for a moment it HOLDS the last turn instead of snapping back to north (which looked like the map spinning).
+  let radarHeldRot = null;
+  const radarRotation = () => {
+    if (!radarOpts.headUp) { radarHeldRot = null; return 0; }
+    const f = facingNow();
+    if (f) radarHeldRot = f.deg;
+    return radarHeldRot === null ? 0 : radarHeldRot;
+  };
   async function setHeadUp(on) {
     compassNote = '';
     if (!on) { radarOpts.headUp = false; radarSave(); renderMap(); return; }
@@ -4030,6 +4134,7 @@
   const RADAR_ICON = {
     eye: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
     places: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4.2"/><path d="M11 13L20.5 3.5"/><path d="M15.6 3.5h4.9v4.9"/></svg>',
+    find: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>',
     plus: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
     minus: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
     centre: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
@@ -4109,10 +4214,109 @@
     dr.appendChild(list);
     stage.appendChild(dr);
   }
+  // ---- Find: the five nearest places of one kind (from the maps stored here), drawn as arrows from you with the name and the distance ----
+  function findCandidates(kind) {
+    const out = [], seenK = new Set();
+    if (!mapList || !selfHasFix) return out;
+    for (const e of mapList.maps) {
+      const m = mapReady(e);
+      if (!m || !m.places) continue;
+      const kx = 111320 * Math.cos(m.lat0 * Math.PI / 180);
+      for (const pl of m.places) {
+        if (pl.kind !== kind) continue;
+        const lat = m.lat0 + pl.y * MAP_UNIT_M / 110540, lon = m.lon0 + pl.x * MAP_UNIT_M / kx, name = m.names[pl.nm - 1] || MAP_POI[kind].one;
+        const key = name + '|' + lat.toFixed(4) + '|' + lon.toFixed(4); // two maps can hold the same place
+        if (seenK.has(key)) continue; seenK.add(key);
+        out.push({kind: kind, name: name, detail: pl.dt ? (m.names[pl.dt - 1] || '') : '', lat: lat, lon: lon, miles: haversineMiles(selfLat, selfLon, lat, lon)});
+      }
+    }
+    return out.sort((a, b) => a.miles - b.miles);
+  }
+  const findKey = (c) => c.kind + '|' + c.name + '|' + c.lat.toFixed(4) + '|' + c.lon.toFixed(4);
+  function findSavedKey(c) { // the saved place that is this one, if you added it (same spot, within 25 m, same name)
+    marksSync();
+    for (const k of wpKeys()) { const m = marks[k]; if (m.name === wpName(c.name) && metersBetween(m.lat, m.lon, c.lat, c.lon) < 25) return k; }
+    return null;
+  }
+  function findAdd(c, quiet) { // keeps it as one of your saved places (which stay on the map in every view that shows saved places); returns its key
+    const have = findSavedKey(c); if (have) return have;
+    const key = wpAdd(c.name, MAP_POI[c.kind].one + (c.detail ? ' \u00B7 ' + c.detail : ''), c.lat, c.lon, 'Find', true);
+    if (key) { buzz('ok'); if (!quiet) toast(wpName(c.name) + ' added to your places'); }
+    return key;
+  }
+  function findCardEl(stage, G, c) { // what the maps know about the place you tapped, and what you can do with it
+    const meta = MAP_POI[c.kind], card = document.createElement('div');
+    card.className = 'radarCard'; card.id = 'findCard'; card.style.bottom = (G.dh + 8) + 'px';
+    const top = document.createElement('div'); top.className = 'radarCardTop';
+    const nm = document.createElement('span'); nm.className = 'radarCardName'; nm.style.color = meta.color; nm.textContent = meta.glyph + ' ' + c.name;
+    const br = bearingDegrees(selfLat, selfLon, c.lat, c.lon), dd = document.createElement('span'); dd.className = 'radarCardDist'; dd.textContent = formatDistance(haversineMiles(selfLat, selfLon, c.lat, c.lon)) + ' ' + compassDirection(br);
+    top.appendChild(nm); top.appendChild(dd); card.appendChild(top);
+    const line = document.createElement('div'); line.className = 'radarCardLine'; line.id = 'findLine';
+    line.textContent = meta.one + ' \u00B7 ' + c.lat.toFixed(5) + ', ' + c.lon.toFixed(5) + ' \u00B7 from the map data (OpenStreetMap)';
+    card.appendChild(line);
+    const dt = document.createElement('div'); dt.className = 'radarCardLine'; dt.id = 'findDetail';
+    dt.textContent = c.detail || 'No hours, phone or address in the map data.';
+    card.appendChild(dt);
+    const saved = findSavedKey(c);
+    if (saved) { const sv = document.createElement('div'); sv.className = 'radarCardLine'; sv.id = 'findSaved'; sv.textContent = '\u2714 Kept in your places, so it stays on the map.'; card.appendChild(sv); }
+    const row = document.createElement('div'); row.className = 'radarCardButtons';
+    const wide = (id, label, primary, fn) => { const b = radarButton(id, 'radarBtnWide' + (primary ? ' primary' : ''), label, '', fn); b.textContent = label; row.appendChild(b); return b; };
+    if (saved) wide('findRemove', 'Remove from my places', true, () => { markClear(saved); renderMap(); });
+    else wide('findAddBtn', 'Add to my places', true, () => { if (!findAdd(c, false)) return; renderMap(); });
+    wide('findTell', 'Tell everyone', false, () => { const k = findAdd(c, true); if (!k) return; wpSend(k); renderMap(); });
+    wide('findClose', 'Close', false, () => { findPick = null; renderMap(); });
+    card.appendChild(row);
+    stage.appendChild(card);
+  }
+  function findCounts() { const c = {}; for (const k of Object.keys(MAP_POI)) c[k] = findCandidates(+k).length; return c; }
+  function radarFindDraw(world, G, me) {
+    if (radarFindKind === null) return;
+    const meta = MAP_POI[radarFindKind], five = findCandidates(radarFindKind).slice(0, 5), V = G.V;
+    const g = svgEl('g', {class: 'radarFind', id: 'radarFind', 'data-kind': String(radarFindKind)});
+    const inset = 26, x0 = inset, x1 = G.W - inset, y0 = inset + 40, y1 = G.usableH - inset;
+    five.forEach((c, i) => {
+      const item = svgEl('g', {class: 'radarFindItem', 'data-i': String(i), tabindex: '0', role: 'button', 'aria-label': (i + 1) + '. ' + c.name + ', ' + formatDistance(c.miles) + '. Tap for details.'});
+      item.style.cursor = 'pointer';
+      const pick = () => { if (radarSuppressClick) return; findPick = (findPick && findKey(findPick) === findKey(c)) ? null : c; markSel = null; radarSelected = null; renderMap(); };
+      item.addEventListener('click', (e) => { e.stopPropagation(); pick(); });
+      item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pick(); } });
+      const pt = G.ll(c.lat, c.lon);
+      let dx = pt.x - me.x, dy = pt.y - me.y, ex = pt.x, ey = pt.y, clipped = false;
+      if (ex < x0 || ex > x1 || ey < y0 || ey > y1) { // out of view: the arrow sits at the edge, pointing the way
+        let t = 1;
+        if (dx > 0) t = Math.min(t, (x1 - me.x) / dx); else if (dx < 0) t = Math.min(t, (x0 - me.x) / dx);
+        if (dy > 0) t = Math.min(t, (y1 - me.y) / dy); else if (dy < 0) t = Math.min(t, (y0 - me.y) / dy);
+        t = Math.max(0, t); ex = me.x + dx * t; ey = me.y + dy * t; clipped = true;
+      }
+      const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 24, fill: '#000', 'fill-opacity': 0.001, class: 'radarFindHit'}));
+      item.appendChild(svgEl('line', {x1: me.x.toFixed(1), y1: me.y.toFixed(1), x2: ex.toFixed(1), y2: ey.toFixed(1), stroke: meta.color, 'stroke-width': 1.8, 'stroke-dasharray': '6 4', 'stroke-opacity': 0.8, class: 'radarFindLine'}));
+      const ah = [[ex, ey], [ex - 14 * ux + 7 * uy, ey - 14 * uy - 7 * ux], [ex - 14 * ux - 7 * uy, ey - 14 * uy + 7 * ux]];
+      item.appendChild(svgEl('polygon', {points: ah.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: meta.color, stroke: V.halo, 'stroke-width': 1.5, class: 'radarFindArrow', 'data-clipped': clipped ? 'yes' : 'no'}));
+      const left = ex > G.W / 2, ly = Math.min(Math.max(ey + (uy > 0 ? -12 : 20), y0), y1);
+      item.appendChild(svgEl('text', {x: (ex + (left ? -10 : 10) - (clipped ? 6 * ux : 0)).toFixed(1), y: ly.toFixed(1), fill: V.ink, 'font-size': 13, 'font-weight': 700, 'text-anchor': left ? 'end' : 'start', stroke: V.halo, 'stroke-opacity': 0.85, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarFindLabel'}, (i + 1) + '. ' + c.name + ' \u00B7 ' + formatDistance(c.miles)));
+      if (findPick && findKey(findPick) === findKey(c)) item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 16, fill: 'none', stroke: '#fff', 'stroke-width': 2, class: 'radarFindSel'}));
+      g.appendChild(item);
+    });
+    world.appendChild(g);
+  }
+  function findSheetBody(body, sec) {
+    sec('Show the five nearest');
+    const counts = findCounts(), any = Object.values(counts).some(n => n > 0);
+    for (const [k, meta] of Object.entries(MAP_POI)) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'radarFindOpt'; b.id = 'radarFind_' + k; b.disabled = counts[k] === 0;
+      b.textContent = meta.name + ' (' + counts[k] + ')';
+      b.onclick = () => { radarFindKind = +k; findPick = null; radarSheet = null; toast('Arrows to the ' + Math.min(5, counts[k]) + ' nearest. Press the Find button again to clear them.'); renderMap(); };
+      body.appendChild(b);
+    }
+    const n = document.createElement('div'); n.className = 'mapNote'; n.id = 'radarFindNote';
+    n.textContent = !selfHasFix ? 'Find needs your position.' : any ? 'The numbers are how many of each are in the maps stored here. Press the Find button again any time to clear the arrows.' : 'None of your stored maps has places to find. Build a map with \u201CPoints to find\u201D ticked (Gear, then Map files).';
+    body.appendChild(n);
+  }
   function radarSheetEl(stage, info, G) {
-    const sh = document.createElement('div'); sh.className = 'radarSheet'; sh.id = radarSheet === 'help' ? 'radarHelpSheet' : radarSheet === 'trip' ? 'radarTripSheet' : radarSheet === 'places' ? 'radarPlacesSheet' : 'radarLayersSheet';
+    const sh = document.createElement('div'); sh.className = 'radarSheet'; sh.id = radarSheet === 'help' ? 'radarHelpSheet' : radarSheet === 'trip' ? 'radarTripSheet' : radarSheet === 'places' ? 'radarPlacesSheet' : radarSheet === 'find' ? 'radarFindSheet' : 'radarLayersSheet';
     { const lb = document.getElementById('radarLayersBtn'); if (lb) lb.setAttribute('aria-pressed', radarSheet === 'layers' ? 'true' : 'false'); }
-    const sheetTitle = radarSheet === 'help' ? 'What the map shows' : radarSheet === 'trip' ? 'History' : radarSheet === 'places' ? 'Places' : 'Layers and views';
+    const sheetTitle = radarSheet === 'help' ? 'What the map shows' : radarSheet === 'trip' ? 'History' : radarSheet === 'places' ? 'Places' : radarSheet === 'find' ? 'Find the nearest' : 'Layers and views';
     sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-label', sheetTitle);
     const head = document.createElement('div'); head.className = 'radarSheetHead';
     const t = document.createElement('span'); t.textContent = sheetTitle; head.appendChild(t);
@@ -4124,6 +4328,8 @@
       tripSheetBody(body, sec);
     } else if (radarSheet === 'places') {
       placesSheetBody(body, sec);
+    } else if (radarSheet === 'find') {
+      findSheetBody(body, sec);
     } else if (radarSheet === 'help') {
       [
         'The blue arrow is you. It points the way you are heading (from the GPS while you move, or from the phone\u2019s compass when you stand still). Everyone else is a coloured dot.',
@@ -4155,7 +4361,7 @@
         l.appendChild(c); l.appendChild(s); body.appendChild(l);
       }
       sec('What the map shows');
-      const V = G.V, cls = [[1, 'Water'], [2, 'Main roads'], [3, 'Streets'], [4, 'Trails'], [5, 'Parks'], [6, 'Railways'], [7, 'Buildings']];
+      const V = G.V, cls = [[1, 'Water'], [2, 'Main roads'], [3, 'Streets'], [4, 'Trails'], [5, 'Parks'], [6, 'Railways'], [7, 'Buildings'], [8, 'Forests'], [9, 'Wetlands'], [10, 'Beaches'], [11, 'Fences'], [12, 'Driveways']];
       for (const [c, label] of cls) check('layerClass_' + c, label, !radarOpts.hidden[c] && !!V.c[c], (on) => { if (on) delete radarOpts.hidden[c]; else radarOpts.hidden[c] = true; radarSave(); renderMap(); }, !V.c[c], V.c[c] ? '' : 'not in this view');
       { const me = document.createElement('div'); me.className = 'radarCheck radarAlways'; me.id = 'layerMe'; const tick = document.createElement('span'); tick.className = 'radarAlwaysTick'; tick.setAttribute('aria-hidden', 'true'); tick.textContent = '\u2714';
         const t = document.createElement('span'); t.textContent = 'Me (always shown)'; me.setAttribute('role', 'img'); me.setAttribute('aria-label', 'Me: always shown, in every view'); me.appendChild(tick); me.appendChild(t); body.appendChild(me); }
@@ -4293,8 +4499,7 @@
     // you are an arrowhead, not a dot: it points the way you are going (GPS course while moving), or the way the phone faces (compass) when you are still; with neither it points north
     const mo = selfMotion();
     let facing = null, facingBy = ''; // the way you are heading: the GPS course while you move, else the phone's compass when it reports
-    if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) { facing = mo.headingDeg; facingBy = 'gps'; } // moving: the way you are travelling (more reliable than a phone in a pocket)
-    else if (compassOffered() && compassFresh()) { facing = compassHeading; facingBy = 'compass'; } // standing still: the way the phone faces
+    { const f = facingNow(); if (f) { facing = f.deg; facingBy = f.by; } }
     const arrowDeg = (((facing !== null) ? facing : 0) - rot + 360) % 360; // the blue arrow: north (as drawn on the map), or the way you head, as the compass button chooses
     const headingDeg = facing === null ? null : (facing - rot + 360) % 360; // where that heading falls on the screen, for the compass needle
     const selfHalo = svgEl('circle', {cx: me.x.toFixed(1), cy: me.y.toFixed(1), r: 21, fill: '#4fc3f7', 'fill-opacity': 0.22, class: 'radarSelfHalo'});
@@ -4303,6 +4508,7 @@
     selfDot.appendChild(svgEl('title', {}, 'You'));
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
+    radarFindDraw(world, G, me);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
     if (selfNameStr) world.appendChild(svgEl('text', {x: me.x.toFixed(1), y: (me.y + 31).toFixed(1), fill: '#4fc3f7', 'fill-opacity': 0.85, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', stroke: V.halo, 'stroke-opacity': 0.7, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarSelfName'}, selfNameStr)); // your own name under the blue arrow, a little see-through
     world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
@@ -4344,6 +4550,10 @@
     leftCol.appendChild(radarButton('radarHelpBtn', 'radarRound' + (radarSheet === 'help' ? ' on' : ''), 'What the map shows', RADAR_ICON.help, () => { radarSheet = radarSheet === 'help' ? null : 'help'; renderMap(); }, {pressed: radarSheet === 'help'}));
     leftCol.appendChild(radarButton('radarPlacesBtn', 'radarRound' + (radarSheet === 'places' || marksAny() ? ' on' : ''), 'Places: mark the car, a meet point or a named place', RADAR_ICON.places, () => { radarSheet = radarSheet === 'places' ? null : 'places'; renderMap(); }, {pressed: radarSheet === 'places'}));
     leftCol.appendChild(radarButton('radarTripBtn', 'radarRound' + (radarSheet === 'trip' || tripActive() ? ' on' : ''), 'History: retrace my steps, time machine, altitude', RADAR_ICON.trip, () => { radarSheet = radarSheet === 'trip' ? null : 'trip'; if (radarSheet === 'trip') { trip.note = ''; tripLoad(false); } renderMap(); }, {pressed: radarSheet === 'trip'}));
+    leftCol.appendChild(radarButton('radarFindBtn', 'radarRound' + (radarSheet === 'find' || radarFindKind !== null ? ' on' : ''), radarFindKind !== null ? 'Find: showing the nearest ' + MAP_POI[radarFindKind].name.toLowerCase() + '. Press to clear.' : 'Find the nearest trailhead, water, fuel, hospital, park or beach', RADAR_ICON.find, () => {
+      if (radarFindKind !== null) { radarFindKind = null; findPick = null; radarSheet = null; toast('Find cleared.'); renderMap(); return; }
+      radarSheet = radarSheet === 'find' ? null : 'find'; renderMap();
+    }, {pressed: radarSheet === 'find' || radarFindKind !== null}));
     // the compass button, under the centre button: N marks north (it turns with the map), the white needle with a red tip is the way you are heading,
     // and pressing it switches the blue arrow between always pointing north and turning to the way you face
     const northTxt = rot ? 'North is ' + Math.round((360 - rot) % 360) + ' degrees round from the top.' : 'North is at the top.';
@@ -4405,7 +4615,8 @@
     if (retracePr) tripBannerEl(bannerBox, retracePr);
     if (replaying) tripReplayBarEl(stage, G);
     if (sel && !radarDrawer && !radarSheet && !replaying) radarCard(stage, sel, G);
-    else if (markSel && !radarDrawer && !radarSheet && !replaying && !markPlacing) markCardEl(stage, G, markSel);
+    else if (markSel && !radarDrawer && !radarSheet && !replaying && !markPlacing) { findPick = null; markCardEl(stage, G, markSel); }
+    else if (findPick && radarFindKind !== null && !radarDrawer && !radarSheet && !replaying && !markPlacing) findCardEl(stage, G, findPick);
     else if (pickedPoint && !radarDrawer && !radarSheet && !replaying && !markPlacing) coordCardEl(stage, G);
     radarDrawerEl(stage, withFix, noFix, G);
     if (radarSheet) radarSheetEl(stage, mapInfo, G);
