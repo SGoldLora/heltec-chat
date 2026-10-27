@@ -145,8 +145,8 @@
   .pktDir { font-weight: 700; } .pktRx .pktDir { color: #63b3ed; } .pktTx .pktDir { color: #f6ad55; }
   .pktBytes { word-break: break-all; line-height: 1.35; }
   .pktState { margin-top: 2px; opacity: 0.85; font-family: inherit; }
-  #signalHistory { padding: 4px 12px 6px 12px; flex-shrink: 0; overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
-  #signalHistory.expanded { max-height: 130px; }
+  #signalHistory { padding: 0 12px; flex-shrink: 0; overflow: hidden; max-height: 0; visibility: hidden; transition: max-height 0.2s ease, padding 0.2s ease, visibility 0s linear 0.2s; }  /* closed: no height, no padding, not even a sliver */
+  #signalHistory.expanded { padding: 4px 12px 6px 12px; max-height: 130px; visibility: visible; transition: max-height 0.2s ease, padding 0.2s ease, visibility 0s; }
   .signalHistoryNote { font-size: 11px; opacity: 0.6; margin: 2px 0 4px 0; }
   .signalLogLink { display: inline-block; margin-top: 6px; font-size: 11px; color: #6ba6e8; text-decoration: none; }
   .signalLogLink:hover { text-decoration: underline; }
@@ -155,13 +155,18 @@
   .retryNote button:disabled { opacity: 0.4; }
   #mapOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; align-items: flex-end; justify-content: center; }
   #mapOverlay.open { display: flex; }
-  #mapPanel { background: #1a1a1a; width: 100%; max-width: 480px; max-height: 92vh; border-radius: 14px 14px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #mapPanel { position: relative; background: #1a1a1a; width: 100%; max-width: 480px; max-height: 92vh; border-radius: 14px 14px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
   #mapHeader { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #2a2a2a; }
   #mapTabs { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
   .mapTab { background: #333; border: none; color: #eee; border-radius: 6px; padding: 5px 9px; font-size: 12px; white-space: nowrap; }
   .mapTab.active { background: #2b6cb0; }
   #mapCloseBtn { background: none; border: none; color: #eee; font-size: 16px; padding: 4px 8px; }
   #mapBody { overflow-y: auto; padding: 8px 12px 12px 12px; }
+  #mapGearMenu { display: none; position: absolute; top: 48px; right: 8px; z-index: 60; min-width: 200px; background: #262626; border: 1px solid #3a3a3a; border-radius: 10px; padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.55); }
+  #mapGearMenu.open { display: block; }
+  .mapGearItem { display: block; width: 100%; text-align: left; background: none; border: none; color: #eee; font-size: 15px; padding: 12px 14px; border-radius: 8px; min-height: 44px; }
+  .mapGearItem.active, .mapGearItem[aria-pressed="true"] { background: #2b6cb0; font-weight: 700; }
+  #mapGearBtn.active { color: #4fc3f7; }
   .mapHdrBtn { background: none; border: none; color: #eee; padding: 6px 8px; display: flex; align-items: center; }
   /* Opened in its own browser tab (?view=map): the panel fills the whole window and the picture is as big as fits. */
   body.mapFull #mapOverlay { background: #1a1a1a; align-items: stretch; }
@@ -306,6 +311,11 @@
   .radarStatus .rsRight { margin-left: auto; }
   .radarStatus .rsOk { color: #66bb6a; } .radarStatus .rsWarn { color: #ffb74d; } .radarStatus .rsBad { color: #ef5350; font-weight: 700; }
   .radarStatus .rsBusy { color: var(--fl-on); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .radarAlways { display: flex; align-items: center; gap: 10px; } .radarAlwaysTick { color: #43a047; font-size: 18px; font-weight: 900; width: 22px; text-align: center; }
+  .radarHeadHud { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; padding: 3px 12px 3px 4px; border-radius: 30px; background: rgba(16,16,16,0.82); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; }
+  .radarHeadHud .rcText { display: flex; flex-direction: column; line-height: 1.1; }
+  .radarHeadHud .rcDir { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; } .radarHeadHud .rcDeg { font-size: 14px; font-weight: 600; } .radarHeadHud .rcBy { font-size: 10px; color: #b8b8b8; }
+  .radarStage.hasHeadHud .radarBanners { top: 92px; }
   .radarBanners { position: absolute; top: 34px; left: 70px; right: 70px; z-index: 3; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
   .radarBanners > * { pointer-events: auto; }
   .radarStage .radarBanners .mapWarn { position: static; }
@@ -482,10 +492,16 @@
 <div id="mapOverlay">
   <div id="mapPanel">
     <div id="mapHeader">
-      <div id="mapTabs"><button id="mapTabRadar" class="mapTab active">Map</button><button id="mapTabGps" class="mapTab">GPS Config</button><button id="mapTabCoverage" class="mapTab">Test Coverage</button><button id="mapTabMaps" class="mapTab">Map files</button></div>
+      <div id="mapTabs"><button id="mapTabRadar" class="mapTab active">Map</button><button id="mapTabCoverage" class="mapTab">Test Coverage</button></div>
+      <button id="mapGearBtn" class="mapHdrBtn" aria-label="Settings: GPS configuration, map files, layers and views" title="Settings: GPS configuration, map files, layers and views" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button id="mapFullscreenBtn" class="mapHdrBtn" style="display:none" aria-label="Full screen" title="Full screen"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button id="mapNewTabBtn" class="mapHdrBtn" aria-label="Open in a new tab, full size" title="Open in a new tab, full size"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></button>
       <button id="mapCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div id="mapGearMenu" role="menu" aria-label="Map settings">
+      <button id="mapTabGps" class="mapGearItem" role="menuitem">GPS configuration</button>
+      <button id="mapTabMaps" class="mapGearItem" role="menuitem">Map files</button>
+      <button id="radarLayersBtn" class="mapGearItem" role="menuitem" aria-pressed="false" aria-label="Layers and views" title="Layers and views: the map view and what is drawn on it">Layers and views</button>
     </div>
     <div id="mapBody"></div>
     <div id="gpsPane" style="display:none">
@@ -1359,9 +1375,10 @@
     3: {name: 'streets', stroke: '#6b7280', w: 0.8, dash: '', maxMiles: 5},   // too cluttered to draw when zoomed far out
     4: {name: 'trails', stroke: '#6fbf73', w: 1, dash: '3 2', maxMiles: 8},
     5: {name: 'park edges', stroke: '#9f7aea', w: 0.9, dash: '5 3', maxMiles: 40},
-    6: {name: 'railways', stroke: '#9ca3af', w: 0.9, dash: '2 2', maxMiles: 40}
+    6: {name: 'railways', stroke: '#9ca3af', w: 0.9, dash: '2 2', maxMiles: 40},
+    7: {name: 'buildings', stroke: '#8a7f72', w: 0.7, maxMiles: 1.5}   // only when zoomed right in; only the "plus buildings" level of detail makes them
   };
-  const MAP_DRAW_ORDER = [5, 6, 1, 3, 4, 2];  // underneath first
+  const MAP_DRAW_ORDER = [5, 6, 1, 7, 3, 4, 2];  // underneath first
   const MAP_MAX_DRAWN_VERTS = 25000;          // per class, so one busy map cannot slow the radar down
 
   // The board stores the file under a name made from this one. It must give exactly the same answer as
@@ -1495,9 +1512,9 @@
 
   // ---- making one from OpenStreetMap ----
   const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-  const MAP_CHUNK_MILES = {all: 6, main: 12, basic: 25};  // the area is fetched in squares this wide, so no single request is heavy
+  const MAP_CHUNK_MILES = {bldg: 2, all: 6, main: 12, basic: 25};  // the area is fetched in squares this wide, so no single request is heavy
   const MAP_MAX_CHUNKS = 64;
-  const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2}; // line-simplifying tolerance, in 2 m steps
+  const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2, 7: 1}; // line-simplifying tolerance, in 2 m steps
 
   function mapBoxFor(lat, lon, radiusMiles) {
     const m = radiusMiles * 1609.344, dLat = m / 110540, dLon = m / (111320 * Math.cos(lat * Math.PI / 180));
@@ -1511,7 +1528,8 @@
     }
     return out;
   }
-  function overpassQuery(b, detail) {
+  function overpassQuery(b, detailIn) {
+    const detail = detailIn === 'bldg' ? 'all' : detailIn; // buildings are "everything" plus one more kind of line
     const bb = '(' + [b.s, b.w, b.n, b.e].map(v => v.toFixed(5)).join(',') + ')';
     const major = 'motorway|trunk|primary|secondary|motorway_link|trunk_link|primary_link|secondary_link';
     const roads = {all: major + '|tertiary|tertiary_link|unclassified|residential|living_street', main: major + '|tertiary|tertiary_link', basic: major}[detail] || major;
@@ -1522,6 +1540,7 @@
     }
     q.push('node["place"~"^(' + ({all: 'city|town|village|hamlet|suburb|neighbourhood', main: 'city|town|village|hamlet', basic: 'city|town'}[detail] || 'city|town') + ')$"]' + bb); // towns etc., for labels
     if (detail === 'all') { q.push('way["boundary"="protected_area"]' + bb, 'way["leisure"="nature_reserve"]' + bb, 'rel["boundary"="protected_area"]' + bb); }
+    if (detailIn === 'bldg') q.push('way["building"]["building"!="no"]' + bb);
     return '[out:json][timeout:90];\n(\n  ' + q.join(';\n  ') + ';\n);\nout geom;';
   }
   function mapClassOf(tags) { // 0 = not drawn
@@ -1536,12 +1555,13 @@
     }
     if (tags.boundary === 'protected_area' || tags.leisure === 'nature_reserve') return 5;
     if (/^(rail|light_rail|narrow_gauge)$/.test(tags.railway || '')) return 6;
+    if (tags.building && tags.building !== 'no') return 7;
     return 0;
   }
   // The lines in an Overpass reply: ways carry their own geometry, and the outlines of big lakes and parks
   // are relations whose member ways carry it. Each way is returned once however many times it appears.
   function mapNameOf(tags, cls) { // the label for a line: its name, or for roads its reference (such as US 19)
-    if (!tags || cls === 6) return '';
+    if (!tags || cls === 6 || cls === 7) return '';
     return mapClipName(tags.name || tags['name:en'] || ((cls === 2 || cls === 3) ? tags.ref : '') || '', MAP_LABEL_MAX_BYTES);
   }
   function parseOverpass(json, seen) {
@@ -1619,8 +1639,8 @@
   }
   // Which lines to keep when everything will not fit: the important ones first, and the minor ones
   // fade out with distance from the centre (streets far away go before trails, trails before main roads).
-  const MAP_BASE = {1: 100, 2: 90, 4: 55, 6: 50, 5: 45, 3: 40};
-  const MAP_DECAY = {1: 0.05, 2: 0.15, 4: 0.8, 6: 0.3, 5: 0.5, 3: 2.0};
+  const MAP_BASE = {1: 100, 2: 90, 4: 55, 6: 50, 5: 45, 3: 40, 7: 25};
+  const MAP_DECAY = {1: 0.05, 2: 0.15, 4: 0.8, 6: 0.3, 5: 0.5, 3: 2.0, 7: 3.0}; // buildings come after every street and trail, nearest the centre first
   function mapFit(ways, budgetBytes, headerBytes) {
     const scored = ways.map((w, i) => {
       let dMin = Infinity;
@@ -1714,7 +1734,7 @@
   const mapForm = {name: '', centre: 'me', typed: '', radius: 12, detail: 'all', budgetKb: 400}; // held here so a redraw cannot reset what was chosen
   const mapBuildState = {phase: 'idle', text: '', done: 0, total: 0, result: null, ctl: null};
   let mapsNote = '';
-  const MAP_RADII = {all: [3, 6, 12], main: [3, 6, 12, 25], basic: [12, 25, 50, 75, 100]};
+  const MAP_RADII = {bldg: [1, 2, 3], all: [3, 6, 12], main: [3, 6, 12, 25], basic: [12, 25, 50, 75, 100]};
 
   // ---- maps kept on the phone (Bluetooth mode) ----
   // Over Bluetooth the board cannot carry maps (too slow, too little space), so the page keeps them in the phone's own storage (IndexedDB;
@@ -1853,13 +1873,13 @@
   // Classes: 1 water, 2 main roads, 3 streets, 4 trails, 5 park edges, 6 railways. A class a view leaves out is not drawn in that view.
   const MAP_VIEWS = {
     standard: {title: 'Standard', about: 'Dark. Roads outlined, water and parks filled.', light: false, bg: '#101010', ink: '#eeeeee', sub: '#a8a8a8', ring: 'rgba(255,255,255,0.18)', halo: '#101010', labels: MAP_LABEL_COLOR,
-      c: {1: {stroke: '#4a98e0', w: 1.6, fill: '#143247'}, 2: {stroke: '#f0b040', w: 2.4, casing: '#0a0a0a', casingW: 4.8}, 3: {stroke: '#8a93a3', w: 1}, 4: {stroke: '#6fbf73', w: 1.3, dash: '3 2'}, 5: {stroke: '#5e9a58', w: 1, dash: '5 3', fill: '#17281a'}, 6: {stroke: '#a8aeb8', w: 1, dash: '2 2'}}},
+      c: {7: {stroke: '#7a6f66', w: 0.7, fill: '#2a2520'}, 1: {stroke: '#4a98e0', w: 1.6, fill: '#143247'}, 2: {stroke: '#f0b040', w: 2.4, casing: '#0a0a0a', casingW: 4.8}, 3: {stroke: '#8a93a3', w: 1}, 4: {stroke: '#6fbf73', w: 1.3, dash: '3 2'}, 5: {stroke: '#5e9a58', w: 1, dash: '5 3', fill: '#17281a'}, 6: {stroke: '#a8aeb8', w: 1, dash: '2 2'}}},
     roads: {title: 'Roads', about: 'Roads stand out. Water and parks are dimmed.', light: false, bg: '#0e0e0e', ink: '#eeeeee', sub: '#a8a8a8', ring: 'rgba(255,255,255,0.16)', halo: '#0e0e0e', labels: MAP_LABEL_COLOR,
-      c: {1: {stroke: '#2b5a80', w: 1, fill: '#0f1d29'}, 2: {stroke: '#ffd166', w: 3.4, casing: '#000000', casingW: 6.4}, 3: {stroke: '#d3d9e3', w: 1.6, casing: '#0e0e0e', casingW: 3}, 4: {stroke: '#7ed08a', w: 1.4, dash: '3 2'}, 5: {stroke: '#2f4d2c', w: 0.8, dash: '5 3', fill: '#121b13'}, 6: {stroke: '#b8bec9', w: 1.2, dash: '4 3'}}},
+      c: {7: {stroke: '#4a4540', w: 0.7, fill: '#1c1a18'}, 1: {stroke: '#2b5a80', w: 1, fill: '#0f1d29'}, 2: {stroke: '#ffd166', w: 3.4, casing: '#000000', casingW: 6.4}, 3: {stroke: '#d3d9e3', w: 1.6, casing: '#0e0e0e', casingW: 3}, 4: {stroke: '#7ed08a', w: 1.4, dash: '3 2'}, 5: {stroke: '#2f4d2c', w: 0.8, dash: '5 3', fill: '#121b13'}, 6: {stroke: '#b8bec9', w: 1.2, dash: '4 3'}}},
     water: {title: 'Water', about: 'Water and shores stand out. Roads are dimmed.', light: false, bg: '#0b1015', ink: '#eeeeee', sub: '#a8a8a8', ring: 'rgba(255,255,255,0.16)', halo: '#0b1015', labels: MAP_LABEL_COLOR,
-      c: {1: {stroke: '#7cc4ff', w: 2.4, fill: '#1c5a86'}, 2: {stroke: '#7a7a7a', w: 1.6}, 3: {stroke: '#3a3f47', w: 0.8}, 4: {stroke: '#4f7c52', w: 1, dash: '3 2'}, 5: {stroke: '#355a33', w: 0.9, dash: '5 3', fill: '#102016'}, 6: {stroke: '#6f747c', w: 0.9, dash: '2 2'}}},
+      c: {7: {stroke: '#4a4f57', w: 0.7, fill: '#15181c'}, 1: {stroke: '#7cc4ff', w: 2.4, fill: '#1c5a86'}, 2: {stroke: '#7a7a7a', w: 1.6}, 3: {stroke: '#3a3f47', w: 0.8}, 4: {stroke: '#4f7c52', w: 1, dash: '3 2'}, 5: {stroke: '#355a33', w: 0.9, dash: '5 3', fill: '#102016'}, 6: {stroke: '#6f747c', w: 0.9, dash: '2 2'}}},
     outdoor: {title: 'Outdoor (light)', about: 'Light background and heavier lines, easier to read in sunlight.', light: true, bg: '#f3efe6', ink: '#161616', sub: '#4a4a4a', ring: 'rgba(0,0,0,0.3)', halo: '#f3efe6', labels: {roads: '#6b4a00', streets: '#33383f', trails: '#1f6b34', water: '#0b4f8a', parks: '#43257a', places: '#111111'},
-      c: {1: {stroke: '#2f78c0', w: 1.8, fill: '#b8d9f5'}, 2: {stroke: '#f2b300', w: 3, casing: '#6b4a00', casingW: 5.6}, 3: {stroke: '#ffffff', w: 1.7, casing: '#8a8a8a', casingW: 3.1}, 4: {stroke: '#2f8f46', w: 1.6, dash: '3 2'}, 5: {stroke: '#4f8f45', w: 1.2, dash: '5 3', fill: '#cfe8c4'}, 6: {stroke: '#444444', w: 1.3, dash: '4 3'}}},
+      c: {7: {stroke: '#8a7f72', w: 0.7, fill: '#d9cfc0'}, 1: {stroke: '#2f78c0', w: 1.8, fill: '#b8d9f5'}, 2: {stroke: '#f2b300', w: 3, casing: '#6b4a00', casingW: 5.6}, 3: {stroke: '#ffffff', w: 1.7, casing: '#8a8a8a', casingW: 3.1}, 4: {stroke: '#2f8f46', w: 1.6, dash: '3 2'}, 5: {stroke: '#4f8f45', w: 1.2, dash: '5 3', fill: '#cfe8c4'}, 6: {stroke: '#444444', w: 1.3, dash: '4 3'}}},
     minimal: {title: 'Minimal', about: 'Only main roads and water. The least clutter.', light: false, bg: '#101010', ink: '#eeeeee', sub: '#a8a8a8', ring: 'rgba(255,255,255,0.18)', halo: '#101010', labels: MAP_LABEL_COLOR,
       c: {1: {stroke: '#4a98e0', w: 1.5, fill: '#143247'}, 2: {stroke: '#d6d6d6', w: 1.8}}}
   };
@@ -2062,7 +2082,7 @@
         }
         d += seg;
         if (vs.fill && w.n >= 4 && w.x[0] === w.x[w.n - 1] && w.y[0] === w.y[w.n - 1]) fillD += seg + 'Z'; // a closed outline (a lake, a park) is filled
-        if (verts > MAP_MAX_DRAWN_VERTS) break;
+        if (verts > (cls === 7 ? 60000 : MAP_MAX_DRAWN_VERTS)) break;
       }
       if (!d) continue;
       if (fillD) g.appendChild(svgEl('path', {d: fillD, fill: vs.fill, stroke: 'none', class: 'mapFill mapFill' + cls}));
@@ -2267,9 +2287,10 @@
     if (mapForm.centre === 'typed') { const t = mk('input'); t.id = 'mapTyped'; t.placeholder = '27.93, -82.72'; t.value = mapForm.typed; t.oninput = () => { mapForm.typed = t.value; }; field('Latitude, longitude', t);
       if (pickedPoint) { const up = mk('button', '', 'Use the spot picked on the radar (' + pickedText() + ')'); up.id = 'mapUsePicked'; up.onclick = () => { mapForm.typed = pickedText(); renderMap(); }; form.appendChild(up); }
     }
+    if (mapForm.detail === 'bldg') form.appendChild(mk('div', 'mapSub', 'Buildings make the file big, so this level covers a small area. They show only when you zoom in close (under about a mile and a half across), and they are the first thing dropped if the size limit is reached.'));
     if (mapForm.detail === 'basic' && mapForm.radius >= 50) form.appendChild(mk('div', 'mapSub', 'A wide, simple map: main roads, rivers, lakes and towns only. Make smaller detailed maps inside it and the radar draws them on top, so the detail fills in wherever you have one.'));
-    field('Detail', sel('mapDetail', [['all', 'Everything: streets, trails, water'], ['main', 'Main roads, trails and water'], ['basic', 'Main roads and water only']], mapForm.detail, v => { mapForm.detail = v; if (!MAP_RADII[v].includes(mapForm.radius)) mapForm.radius = MAP_RADII[v][MAP_RADII[v].length - 1]; renderMap(); }));
-    field('Radius', sel('mapRadius', MAP_RADII[mapForm.detail].map(r => [r, r + ' miles (' + 2 * r + ' \u00D7 ' + 2 * r + ' mi)']), mapForm.radius, v => { mapForm.radius = parseInt(v, 10); }));
+    field('Detail', sel('mapDetail', [['bldg', 'Everything plus buildings (small area)'], ['all', 'Everything: streets, trails, water'], ['main', 'Main roads, trails and water'], ['basic', 'Main roads and water only']], mapForm.detail, v => { mapForm.detail = v; if (!MAP_RADII[v].includes(mapForm.radius)) mapForm.radius = MAP_RADII[v][MAP_RADII[v].length - 1]; renderMap(); }));
+    field('Radius', sel('mapRadius', MAP_RADII[mapForm.detail].map(r => [r, r + (r === 1 ? ' mile (' : ' miles (') + 2 * r + ' \u00D7 ' + 2 * r + ' mi)']), mapForm.radius, v => { mapForm.radius = parseInt(v, 10); }));
     field('Size limit', sel('mapBudget', [[200, '200 KB'], [400, '400 KB'], [600, '600 KB']], mapForm.budgetKb, v => { mapForm.budgetKb = parseInt(v, 10); }));
     if (mapForm.detail !== 'basic') { const hint = mk('div', 'mapSub', 'Want a bigger area (up to 100 miles)? Set Detail to \u201CMain roads and water only\u201D and the larger radii appear here.'); hint.id = 'mapBigHint'; form.appendChild(hint); }
     const b = mapBuildState, running = b.phase === 'running';
@@ -2348,10 +2369,11 @@
     document.getElementById('mapTabCoverage').classList.toggle('active', tab === 'coverage');
     document.getElementById('mapTabMaps').classList.toggle('active', tab === 'maps');
     document.getElementById('mapTabGps').classList.toggle('active', tab === 'gps');
+    { const gb = document.getElementById('mapGearBtn'); if (gb) gb.classList.toggle('active', tab === 'gps' || tab === 'maps' || radarSheet === 'layers'); gearMenuOpen(false); }
     document.getElementById('gpsPane').style.display = tab === 'gps' ? '' : 'none'; // the GPS tab shows the My location controls; the others draw into the body
     document.getElementById('mapBody').style.display = tab === 'gps' ? 'none' : '';
     if (tab === 'maps') refreshMapList();
-    for (const t of ['radar', 'gps', 'network', 'coverage', 'maps']) { const el = document.getElementById('mapTab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) { el.setAttribute('role', 'tab'); el.setAttribute('aria-selected', t === tab ? 'true' : 'false'); } }
+    for (const t of ['radar', 'gps', 'network', 'coverage', 'maps']) { const el = document.getElementById('mapTab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) { if (el.classList.contains('mapGearItem')) { el.setAttribute('role', 'menuitem'); el.setAttribute('aria-pressed', t === tab ? 'true' : 'false'); } else { el.setAttribute('role', 'tab'); el.setAttribute('aria-selected', t === tab ? 'true' : 'false'); } } }
     renderMap();
     { const nowEl = tab === 'gps' ? document.getElementById('gpsPane') : document.getElementById('mapBody'); if (nowEl && tab !== 'radar') nowEl.scrollTop = mapTabScroll[tab] || 0; }
   }
@@ -2485,8 +2507,9 @@
   try { if (localStorage.getItem(HAPTIC_KEY) === '0') hapticsOn = false; } catch (e) { /* default on */ }
   const hapticsSupported = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
   function buzz(kind) { // 'tap' for any button, 'ok' for something that worked, 'warn' for something that did not
-    if (!hapticsOn || !hapticsSupported()) return;
-    try { navigator.vibrate(kind === 'warn' ? [60, 40, 60] : kind === 'ok' ? [18, 40, 18] : 10); } catch (e) { /* the phone refused */ }
+    if (!hapticsOn || !hapticsSupported()) return true;
+    // (a 10 ms pulse, as this used to be, is too short for most phone motors to produce anything you can feel)
+    try { return navigator.vibrate(kind === 'warn' ? [90, 60, 90] : kind === 'ok' ? [40, 60, 40] : 30); } catch (e) { return false; /* the phone refused */ }
   }
   document.addEventListener('click', (e) => { // every button gives a small tap; actions that matter add their own stronger one
     const b = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -2502,7 +2525,10 @@
   document.getElementById('hapticBtn').addEventListener('click', () => {
     hapticsOn = !hapticsOn;
     try { localStorage.setItem(HAPTIC_KEY, hapticsOn ? '1' : '0'); } catch (e) { /* not saved */ }
-    updateHapticButton(); buzz('ok'); toast('Touch feedback ' + (hapticsOn ? 'on' : 'off'));
+    updateHapticButton();
+    if (!hapticsOn) { toast('Touch feedback off'); return; }
+    const ok = buzz('ok'); // switching it on gives one clear buzz so you can tell at once whether this phone and browser allow it
+    toast(ok === false ? 'Touch feedback is on, but this browser refused to vibrate. Check the phone\u2019s vibration settings (and that battery saver is off).' : 'Touch feedback on. Felt nothing? Vibration may be off in the phone\u2019s own settings, or battery saver is on.');
   });
 
   let toastTimer = null;
@@ -3696,7 +3722,7 @@
   try {
     const sv = JSON.parse(localStorage.getItem(RADAR_OPTS_KEY) || '{}');
     if (sv && MAP_VIEWS[sv.view]) radarOpts.view = sv.view;
-    if (sv && sv.hidden && typeof sv.hidden === 'object') for (const c of [1, 2, 3, 4, 5, 6]) if (sv.hidden[c] === true) radarOpts.hidden[c] = true;
+    if (sv && sv.hidden && typeof sv.hidden === 'object') for (const c of [1, 2, 3, 4, 5, 6, 7]) if (sv.hidden[c] === true) radarOpts.hidden[c] = true;
     for (const k of ['rings', 'trails']) if (sv && sv[k] === false) radarOpts[k] = false;
     for (const k of ['signal', 'headUp']) if (sv && sv[k] === true) radarOpts[k] = true;
   } catch (e) { /* no saved choices */ }
@@ -3908,7 +3934,7 @@
   }
   const RADAR_ICON = {
     eye: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
-    places: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+    places: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4.2"/><path d="M11 13L20.5 3.5"/><path d="M15.6 3.5h4.9v4.9"/></svg>',
     plus: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
     minus: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
     centre: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
@@ -3916,7 +3942,7 @@
     help: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>',
     up: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
     down: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
-    trip: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>',
+    trip: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
     play: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
     pause: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>',
     close: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
@@ -3990,6 +4016,7 @@
   }
   function radarSheetEl(stage, info, G) {
     const sh = document.createElement('div'); sh.className = 'radarSheet'; sh.id = radarSheet === 'help' ? 'radarHelpSheet' : radarSheet === 'trip' ? 'radarTripSheet' : radarSheet === 'places' ? 'radarPlacesSheet' : 'radarLayersSheet';
+    { const lb = document.getElementById('radarLayersBtn'); if (lb) lb.setAttribute('aria-pressed', radarSheet === 'layers' ? 'true' : 'false'); }
     const sheetTitle = radarSheet === 'help' ? 'What the map shows' : radarSheet === 'trip' ? 'History' : radarSheet === 'places' ? 'Places' : 'Layers and views';
     sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-label', sheetTitle);
     const head = document.createElement('div'); head.className = 'radarSheetHead';
@@ -4009,9 +4036,9 @@
         'Tap a person (or a name in the list) to see how far away they are, when they were last heard, and how strong their signal is.',
         'Drag the map to look around. The centre button brings it back to you. Pinch, scroll, or use + and \u2212 to zoom.',
         'The dashed rings are distances from you. The row along the bottom shows north, the scale bar, and today\u2019s sunrise and sunset.',
-        'The layers button chooses the map view (roads, water, outdoor light) and what is drawn on it.',
+        'The gear at the top holds the map settings: Layers and views (the map view and what is drawn on it), GPS configuration and Map files.',
         'Flags and pins on the map are your marks: the car, the meet point, and any places you have named. Tap one for its distance, to be led there, to tell everyone, or to clear it.',
-        'The pin button is for Places: mark your car, a meet point, or save a named place (up to 20).',
+        'The bullseye button is for Places: mark your car, a meet point, or save a named place (up to 20).',
         'The sun chip at the bottom right of the map shows today\u2019s sunrise and sunset here; tap it for more.',
         'The clock button opens History: retrace my steps, the time machine, and your altitude.'
       ].forEach(line => { const p = document.createElement('p'); p.textContent = line; body.appendChild(p); });
@@ -4033,8 +4060,10 @@
         l.appendChild(c); l.appendChild(s); body.appendChild(l);
       }
       sec('What the map shows');
-      const V = G.V, cls = [[1, 'Water'], [2, 'Main roads'], [3, 'Streets'], [4, 'Trails'], [5, 'Parks'], [6, 'Railways']];
+      const V = G.V, cls = [[1, 'Water'], [2, 'Main roads'], [3, 'Streets'], [4, 'Trails'], [5, 'Parks'], [6, 'Railways'], [7, 'Buildings']];
       for (const [c, label] of cls) check('layerClass_' + c, label, !radarOpts.hidden[c] && !!V.c[c], (on) => { if (on) delete radarOpts.hidden[c]; else radarOpts.hidden[c] = true; radarSave(); renderMap(); }, !V.c[c], V.c[c] ? '' : 'not in this view');
+      { const me = document.createElement('div'); me.className = 'radarCheck radarAlways'; me.id = 'layerMe'; const tick = document.createElement('span'); tick.className = 'radarAlwaysTick'; tick.setAttribute('aria-hidden', 'true'); tick.textContent = '\u2714';
+        const t = document.createElement('span'); t.textContent = 'Me (always shown)'; me.setAttribute('role', 'img'); me.setAttribute('aria-label', 'Me: always shown, in every view'); me.appendChild(tick); me.appendChild(t); body.appendChild(me); }
       sec('Names');
       if (info && info.state === 'ready' && info.map) mapLabelRow(body, info.map);
       else { const n = document.createElement('div'); n.className = 'mapNote'; n.textContent = 'Names can be switched on and off once a map has loaded.'; body.appendChild(n); }
@@ -4179,6 +4208,15 @@
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
+    if (facing !== null) { // a white line with a red arrowhead, out in front of you in the direction you are heading
+      const th = arrowDeg * Math.PI / 180, ux = Math.sin(th), uy = -Math.cos(th), x0 = me.x + ux * 16, y0 = me.y + uy * 16, x1 = me.x + ux * 62, y1 = me.y + uy * 62;
+      const tip = [[x1 + ux * 12, y1 + uy * 12], [x1 - uy * 7, y1 + ux * 7], [x1 + uy * 7, y1 - ux * 7]].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+      const hg = svgEl('g', {class: 'radarHeading', 'aria-hidden': 'true', 'data-heading': String(Math.round(facing))});
+      hg.appendChild(svgEl('line', {x1: x0.toFixed(1), y1: y0.toFixed(1), x2: x1.toFixed(1), y2: y1.toFixed(1), stroke: '#101010', 'stroke-width': 7, 'stroke-linecap': 'round'}));
+      hg.appendChild(svgEl('line', {x1: x0.toFixed(1), y1: y0.toFixed(1), x2: x1.toFixed(1), y2: y1.toFixed(1), stroke: '#ffffff', 'stroke-width': 3.5, 'stroke-linecap': 'round', class: 'radarHeadingLine'}));
+      hg.appendChild(svgEl('polygon', {points: tip, fill: '#e53935', stroke: '#101010', 'stroke-width': 1.5, 'stroke-linejoin': 'round', class: 'radarHeadingTip'}));
+      world.appendChild(hg);
+    }
     world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
 
     // a scale bar that stays the same size on the screen: it picks a distance that is 40 to 130 pixels long
@@ -4196,6 +4234,7 @@
     if (markSel && !marks[markSel]) markSel = null;
     if (markGoto && !marks[markGoto]) markGoto = null;
     { const strip = document.createElement('div'); strip.className = 'radarStatus'; strip.id = 'radarStatus'; statusStripFill(strip); stage.appendChild(strip); }
+    if (facing !== null) stage.appendChild(radarCompassHud(facing, facingBy));
 
     // things floating over the map
     mapBanner(stage, mapInfo);
@@ -4212,7 +4251,6 @@
     const auto = radarButton('mapZoomAuto', 'radarRound radarAuto', 'Fit everyone automatically', '', () => { radarZoomStep = null; renderMap(); }, {disabled: radarZoomStep === null});
     auto.textContent = 'Auto'; right.appendChild(auto);
     right.appendChild(radarButton('radarCentreBtn', 'radarRound' + (radarCentre ? ' on' : ''), radarCentre ? 'Centre the map on me (it is showing somewhere else)' : 'Centre the map on me', RADAR_ICON.centre, () => { radarCentre = null; renderMap(); }, {pressed: !!radarCentre}));
-    right.appendChild(radarButton('radarLayersBtn', 'radarRound' + (radarSheet === 'layers' ? ' on' : ''), 'Layers and views', RADAR_ICON.layers, () => { radarSheet = radarSheet === 'layers' ? null : 'layers'; renderMap(); }, {pressed: radarSheet === 'layers'}));
     stage.appendChild(right);
     const leftCol = document.createElement('div'); leftCol.className = 'radarFloat radarLeft';
     leftCol.appendChild(radarButton('radarHelpBtn', 'radarRound' + (radarSheet === 'help' ? ' on' : ''), 'What the map shows', RADAR_ICON.help, () => { radarSheet = radarSheet === 'help' ? null : 'help'; renderMap(); }, {pressed: radarSheet === 'help'}));
@@ -4258,6 +4296,7 @@
     const capTmp = document.createElement('div'); mapCaption(capTmp, mapInfo);
     const cap = capTmp.querySelector('.mapCaption');
     if (cap) stack.appendChild(cap);
+    if (facing !== null) stage.classList.add('hasHeadHud');
     stage.appendChild(stack);
     const bannerBox = document.createElement('div'); bannerBox.className = 'radarBanners'; bannerBox.id = 'radarBanners'; stage.appendChild(bannerBox);
     for (const c of [...stage.children]) if (c.classList && c.classList.contains('mapWarn')) bannerBox.appendChild(c);
@@ -4759,6 +4798,25 @@
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   }
 
+  function radarCompassHud(deg, by) { // a small compass card at the top of the map: it turns so the way you are heading is always up, with the direction and degrees beside it
+    const box = document.createElement('div'); box.className = 'radarHeadHud'; box.id = 'radarHeadHud'; box.setAttribute('role', 'img');
+    const d = Math.round(((deg % 360) + 360) % 360) % 360, name = compassDirection(d);
+    box.setAttribute('aria-label', 'Heading ' + name + ', ' + d + ' degrees, from the ' + (by === 'compass' ? 'phone\u2019s compass' : 'GPS'));
+    const sv = svgEl('svg', {width: 54, height: 54, viewBox: '-27 -27 54 54', 'aria-hidden': 'true'});
+    sv.appendChild(svgEl('circle', {cx: 0, cy: 0, r: 25, fill: '#1e1e1e', stroke: '#8a8a8a', 'stroke-width': 1.5}));
+    const card = svgEl('g', {class: 'rcCard', transform: 'rotate(' + (-d) + ')'});
+    for (let a = 0; a < 360; a += 45) { const r = a % 90 === 0 ? [20, 25] : [22, 25], t = a * Math.PI / 180; card.appendChild(svgEl('line', {x1: (Math.sin(t) * r[0]).toFixed(1), y1: (-Math.cos(t) * r[0]).toFixed(1), x2: (Math.sin(t) * r[1]).toFixed(1), y2: (-Math.cos(t) * r[1]).toFixed(1), stroke: '#bdbdbd', 'stroke-width': 1.2})); }
+    for (const [a, l, c] of [[0, 'N', '#ff5252'], [90, 'E', '#e0e0e0'], [180, 'S', '#e0e0e0'], [270, 'W', '#e0e0e0']]) { const t = a * Math.PI / 180, x = Math.sin(t) * 14.5, y = -Math.cos(t) * 14.5; card.appendChild(svgEl('text', {x: x.toFixed(1), y: (y + 3.6).toFixed(1), 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: c, transform: 'rotate(' + a + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')'}, l)); }
+    sv.appendChild(card);
+    sv.appendChild(svgEl('line', {x1: 0, y1: 8, x2: 0, y2: -17, stroke: '#ffffff', 'stroke-width': 3, 'stroke-linecap': 'round'}));
+    sv.appendChild(svgEl('polygon', {points: '0,-24 -5,-15 5,-15', fill: '#e53935', stroke: '#101010', 'stroke-width': 1}));
+    box.appendChild(sv);
+    const tx = document.createElement('div'); tx.className = 'rcText';
+    const a = document.createElement('span'); a.className = 'rcDir'; a.textContent = name; const b = document.createElement('span'); b.className = 'rcDeg'; b.textContent = d + '\u00B0';
+    const c = document.createElement('span'); c.className = 'rcBy'; c.textContent = by === 'compass' ? 'compass' : 'GPS';
+    tx.appendChild(a); tx.appendChild(b); tx.appendChild(c); box.appendChild(tx);
+    return box;
+  }
   function compassDirection(deg) {
     const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
     return dirs[Math.round(deg / 22.5) % 16];
@@ -6168,8 +6226,23 @@
   document.getElementById('mapTabRadar').onclick = () => setMapTab('radar');
   document.getElementById('networkOpenBtn').onclick = () => { openMap(); setMapTab('network'); }; // the network view lives in the Everyone list now
   document.getElementById('mapTabCoverage').onclick = () => setMapTab('coverage');
-  document.getElementById('mapTabMaps').onclick = () => setMapTab('maps');
-  document.getElementById('mapTabGps').onclick = () => setMapTab('gps');
+  document.getElementById('mapTabMaps').onclick = () => { gearMenuOpen(false); setMapTab('maps'); };
+  document.getElementById('mapTabGps').onclick = () => { gearMenuOpen(false); setMapTab('gps'); };
+  document.getElementById('radarLayersBtn').onclick = () => { gearMenuOpen(false); if (mapTab !== 'radar') setMapTab('radar'); radarSheet = radarSheet === 'layers' ? null : 'layers'; renderMap(); };
+  // the gear: GPS configuration, Map files, and the layers sheet live here instead of on the face of the map
+  function gearMenuOpen(open) {
+    const m = document.getElementById('mapGearMenu'), b = document.getElementById('mapGearBtn'); if (!m || !b) return;
+    m.classList.toggle('open', !!open); b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { const first = m.querySelector('.mapGearItem'); if (first) first.focus(); } else if (document.activeElement && m.contains(document.activeElement)) b.focus();
+  }
+  document.getElementById('mapGearBtn').onclick = (e) => { e.stopPropagation(); gearMenuOpen(!document.getElementById('mapGearMenu').classList.contains('open')); };
+  document.getElementById('mapGearMenu').addEventListener('keydown', (e) => {
+    const items = [...document.querySelectorAll('#mapGearMenu .mapGearItem')], i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); gearMenuOpen(false); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  });
+  document.addEventListener('click', (e) => { const m = document.getElementById('mapGearMenu'); if (m && m.classList.contains('open') && !m.contains(e.target) && e.target.id !== 'mapGearBtn') gearMenuOpen(false); });
   walkLoad();
   setInterval(walkTick, 1000);
   setInterval(updateSunLine, 60000); // "Sunset in 3 h 10 min" stays right
