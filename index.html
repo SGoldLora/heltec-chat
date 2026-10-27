@@ -1597,7 +1597,10 @@
   }
 
   // ---- making one from OpenStreetMap ----
-  const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+  const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter'];
+  const overpassOrder = OVERPASS_SERVERS.slice();  // the server to try next is first; one that just failed goes to the back, so a dead one is not asked first again for every part
+  const overpassCache = new Map();                 // query -> reply, for the parts already downloaded: a build that failed part-way carries on from there instead of starting again
+  const OVERPASS_CACHE_MAX = 80, OVERPASS_ROUNDS = 3, OVERPASS_TIMEOUT_MS = 75000, OVERPASS_GAP_MS = 1200;
   const MAP_CHUNK_MILES = {bldg: 2, all: 6, main: 12, basic: 25};  // the area is fetched in squares this wide, so no single request is heavy
   const MAP_MAX_CHUNKS = 64;
   const MAP_DP_TOL = {1: 2.5, 2: 1.5, 3: 1.5, 4: 2, 5: 6, 6: 2, 7: 1, 8: 6, 9: 5, 10: 4, 11: 2, 12: 1.5, 13: 2, 14: 2, 15: 2}; // line-simplifying tolerance, in 2 m steps
@@ -1783,29 +1786,45 @@
   }
 
   async function overpassFetch(query, hooks) {
-    const delays = [2000, 5000, 10000, 20000];
+    if (overpassCache.has(query)) { const hit = overpassCache.get(query); return hit; } // already downloaded in an earlier try
+    const roundWaits = [3000, 8000, 15000], n = overpassOrder.length, note = (t) => { if (hooks.onNote) hooks.onNote(t); };
     let lastErr = 'no map server answered';
-    for (let attempt = 0; attempt < 6; attempt++) {
+    for (let attempt = 0; attempt < OVERPASS_ROUNDS * n; attempt++) {
       if (hooks.signal && hooks.signal.aborted) throw new Error('cancelled');
-      const url = OVERPASS_SERVERS[attempt % OVERPASS_SERVERS.length];
-      const host = url.replace(/^https?:\/\//, '').split('/')[0], note = (t) => { if (hooks.onNote) hooks.onNote(t); };
-      note('Asking ' + host + ' (try ' + (attempt + 1) + ' of 6)\u2026');
+      const url = overpassOrder[0], host = url.replace(/^https?:\/\//, '').split('/')[0];
+      note('Asking ' + host + ' (try ' + (attempt + 1) + ' of ' + OVERPASS_ROUNDS * n + ')\u2026');
+      let timer = null, ctl = null, timedOut = false, onAbort = null;
       try {
-        const r = await busyWrap('Getting map data from the internet', () => hooks.fetch(url, {method: 'POST', body: 'data=' + encodeURIComponent(query), headers: {'Content-Type': 'application/x-www-form-urlencoded'}, signal: hooks.signal}));
+        if (typeof AbortController !== 'undefined') { // a request that hangs must not hang the whole build
+          ctl = new AbortController();
+          timer = setTimeout(() => { timedOut = true; ctl.abort(); }, hooks.timeoutMs || OVERPASS_TIMEOUT_MS);
+          if (hooks.signal) { onAbort = () => ctl.abort(); if (hooks.signal.addEventListener) hooks.signal.addEventListener('abort', onAbort); }
+        }
+        const sig = ctl ? ctl.signal : hooks.signal;
+        const r = await busyWrap('Getting map data from the internet', () => hooks.fetch(url, {method: 'POST', body: 'data=' + encodeURIComponent(query), headers: {'Content-Type': 'application/x-www-form-urlencoded'}, signal: sig}));
         if (r.status === 429 || r.status === 502 || r.status === 503 || r.status === 504) lastErr = 'the map server is busy (' + r.status + ')';
         else if (!r.ok) lastErr = 'the map server answered ' + r.status;
         else {
           const j = await r.json();
           if (!j || !Array.isArray(j.elements)) lastErr = 'the map server sent an unexpected reply';
           else if (j.remark && /runtime error|timed out|out of memory/i.test(j.remark)) lastErr = 'the map server ran out of time';
-          else return j;
+          else {
+            overpassCache.set(query, j);
+            while (overpassCache.size > OVERPASS_CACHE_MAX) overpassCache.delete(overpassCache.keys().next().value);
+            return j;
+          }
         }
       } catch (e) {
-        if ((hooks.signal && hooks.signal.aborted) || (e && e.message === 'cancelled')) throw new Error('cancelled');
-        lastErr = (e && e.message) ? e.message : 'a network error';
+        if (!timedOut && ((hooks.signal && hooks.signal.aborted) || (e && e.message === 'cancelled'))) throw new Error('cancelled');
+        lastErr = timedOut ? 'the map server took too long to answer' : ((e && e.message) ? e.message : 'a network error');
+      } finally {
+        if (timer) clearTimeout(timer);
+        if (onAbort && hooks.signal && hooks.signal.removeEventListener) hooks.signal.removeEventListener('abort', onAbort);
       }
-      note('Try ' + (attempt + 1) + ' failed (' + host + '): ' + lastErr + '. Trying again shortly\u2026');
-      await hooks.sleep(delays[Math.min(attempt, delays.length - 1)]);
+      overpassOrder.push(overpassOrder.shift()); // this one goes to the back of the line
+      const endOfRound = (attempt + 1) % n === 0;
+      note('Try ' + (attempt + 1) + ' failed (' + host + '): ' + lastErr + '. ' + (endOfRound ? 'Every server failed; waiting a little before going round again\u2026' : 'Trying the next server\u2026'));
+      if (attempt + 1 < OVERPASS_ROUNDS * n) await hooks.sleep(endOfRound ? roundWaits[Math.min(Math.floor(attempt / n), roundWaits.length - 1)] : 600);
     }
     throw new Error('Could not get map data: ' + lastErr + '. Check that the phone has internet and try again in a minute.');
   }
@@ -1822,7 +1841,15 @@
     const extras = params.extras || {};
     for (let i = 0; i < chunks.length; i++) {
       hooks.onProgress(i, chunks.length, 'Downloading part ' + (i + 1) + ' of ' + chunks.length + '\u2026');
-      const json = await overpassFetch(overpassQuery(chunks[i], params.detail, extras), hooks);
+      const q = overpassQuery(chunks[i], params.detail, extras), cached = overpassCache.has(q);
+      if (!cached && i > 0 && hooks.sleep) await hooks.sleep(OVERPASS_GAP_MS); // a short pause between requests keeps the public servers from refusing us
+      let json;
+      try { json = await overpassFetch(q, hooks); }
+      catch (e) {
+        if (e && e.message === 'cancelled') throw e;
+        const got = chunks.slice(0, i).length;
+        throw new Error(e.message + (got ? ' ' + got + ' of ' + chunks.length + ' parts are kept: press Build map again to carry on from there.' : ''));
+      }
       const parsed = parseOverpass(json, seen);
       rawSeen += parsed.length;
       for (const w of mapPrepare(parsed, params.lat, params.lon, halfM)) all.push(w);
@@ -1846,6 +1873,7 @@
       packedBudget = Math.floor(packedBudget * params.budgetBytes / bytes.length * 0.97);
     }
     if (bytes.length > MAP_MAX_BYTES) throw new Error('The map came out too large for the board. Choose a smaller radius or less detail.');
+    for (const ch of chunks) overpassCache.delete(overpassQuery(ch, params.detail, extras)); // finished: the kept parts are no longer needed
     const points = fit.ways.reduce((a, w) => a + w.pts.length, 0);
     return {bytes: bytes, compressed: gz, map: mk(fit.ways), summary: {labels: {lines: fit.ways.filter(w => w.name).length, places: places.length}, lines: fit.ways.length, points: points, found: all.length, dropped: fit.dropped, parts: chunks.length, storedBytes: bytes.length}};
   }
@@ -1981,7 +2009,10 @@
       if (u8[0] === 0x1F && u8[1] === 0x8B) u8 = await mapGunzip(u8);
       if (mapCache.get(key) !== mine) return; // the list was replaced while this was coming (a map was uploaded or deleted)
       mapCache.set(key, {state: 'ready', map: mapDecode(u8)});
-      while (mapCache.size > 4) { const oldest = mapCache.keys().next().value; mapCache.delete(oldest); } // the board holds at most four maps, and the radar can draw all of those in view
+      // Keep every map the radar may need at once. A small cap made the wide zoom steps (which touch several maps) throw one out to load another, again and again,
+      // so the "Loading the map" card kept flashing. Only maps that are finished are ever dropped, never the one just stored.
+      const keep = Math.max(12, (mapList && mapList.maxCount) || 0);
+      for (const k of [...mapCache.keys()]) { if (mapCache.size <= keep) break; const sl = mapCache.get(k); if (k !== key && sl && sl.state === 'ready') mapCache.delete(k); }
     } catch (e) {
       if (mapCache.get(key) !== mine) return;
       if (tries < MAP_RETRY_MS.length) { // try again a little later, still showing "Loading"
