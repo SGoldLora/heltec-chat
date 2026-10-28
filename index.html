@@ -22,7 +22,8 @@
   #topBar .wifiLabel { font-size: 11px; opacity: 0.6; }
   #topBar .fwLabel { font-size: 10px; opacity: 0.4; }
   #topBar .wifiRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  #chatColumnHeaders .headCompass { align-self: center; font-size: 12px; font-weight: 700; color: #cfd8dc; letter-spacing: normal; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; } #chatColumnHeaders .headCompass svg { display: block; width: 18px; height: 18px; }
+  #chatColumnHeaders { position: relative; } #chatColumnHeaders.hasCompass { min-height: 38px; box-sizing: border-box; }
+  #chatColumnHeaders .headCompass { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); font-size: 15px; font-weight: 700; color: #e0e8ec; letter-spacing: normal; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; } #chatColumnHeaders .headCompass svg { display: block; width: 28px; height: 28px; }
   #topBar .headerButtons { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
   #soundToggle, #switchToHotspotBtn { background: #333; border: none; color: #eee; border-radius: 6px; padding: 6px 10px; font-size: 14px; }
   /* "Maximize messaging": the extra information above and below the messages is hidden so they get the room. Warnings, the contact
@@ -201,6 +202,8 @@
   .radarPeer { cursor: pointer; }
   .radarPeer:focus { outline: none; }
   .radarPeer:focus-visible .radarDot { stroke: #ffffff; stroke-width: 3; }
+  .mapActiveRow { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 4px 0 2px; }
+  .mapListRow.mapInactive { opacity: 0.6; }
   .radarFloat { position: absolute; top: 36px; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
   .radarRight { right: 10px; }
   .radarLeft { left: 10px; align-items: center; }
@@ -211,6 +214,7 @@
   .radarRound.on { border-color: var(--fl-on); color: var(--fl-on); }
   .radarSun { background: var(--fl-bg); border: 1px solid var(--fl-line); color: var(--fl-ink); border-radius: 10px; padding: 3px 5px; font-size: 10px; line-height: 1.25; display: flex; flex-direction: column; align-items: flex-start; min-width: 52px; }
   .radarSun .next { font-weight: 800; color: #ffd54f; }
+  .radarStage.radarLight .radarSun .next { color: #8a4b00; }
   .routeToggle { background: none; border: none; color: var(--fl-sub, #9ab); font-size: 12px; padding: 2px 4px; margin: -6px 4px 4px; cursor: pointer; text-align: left; }
   .routeBox .relayNote { margin: 0 4px 6px; }
   .routeBox[hidden] { display: none; }
@@ -350,6 +354,7 @@
   #sunLine:empty { display: none; }
   #gpsPane #myLocationBlock { border-bottom: none; }
   #mapBody svg { width: 100%; height: auto; display: block; background: #111; border-radius: 10px; }
+  #mapBody .radarStage svg { background: transparent; border-radius: 0; } /* the radar: the map colour comes from the stage, and the button icons must not paint a black square over a light button */
   .mapNote { font-size: 12px; opacity: 0.7; margin: 6px 0; line-height: 1.35; }
   .mapList { font-size: 12px; margin-top: 8px; }
   .mapListRow { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-top: 1px solid #2a2a2a; }
@@ -1884,6 +1889,10 @@
   // a few times, a little later each time; and the caption offers "Try again" if it still fails.
   const MAP_RETRY_MS = [1500, 3000, 6000, 12000, 20000];
   let mapListTries = 0, mapListTimer = null, mapListFailed = false, mapListGen = 0;
+  let mapOff = new Set();        // slugs of stored maps switched off on this phone: kept on the board, but not drawn or searched
+  try { const v = JSON.parse(localStorage.getItem('loraMapOff') || '[]'); if (Array.isArray(v)) mapOff = new Set(v.filter(x => typeof x === 'string')); } catch (e) { /* none switched off */ }
+  const mapsOn = () => (mapList ? mapList.maps.filter(e => !mapOff.has(e.slug)) : []);
+  function mapSetActive(e, on) { if (on) mapOff.delete(e.slug); else mapOff.add(e.slug); try { localStorage.setItem('loraMapOff', JSON.stringify([...mapOff])); } catch (x) { /* not saved */ } findPick = null; }
   let mapList = null;            // what the board holds: {maps: [...], totalBytes, usedBytes, maxBytes, maxCount, reserveBytes}; null = not known
   const mapCache = new Map();    // "name:buildtime" -> {state: 'loading' | 'ready' | 'error', map, error}
   let mapShow = true;            // draw the map under the radar and coverage views
@@ -1985,7 +1994,7 @@
   }
   function pickMapFor(lat, lon) { // the smallest stored map that contains this position
     let best = null;
-    if (mapList) for (const e of mapList.maps) if (mapContains(e, lat, lon) && (!best || e.half < best.half)) best = e;
+    if (mapList) for (const e of mapsOn()) if (mapContains(e, lat, lon) && (!best || e.half < best.half)) best = e;
     return best;
   }
   const mapKey = (e) => e.slug + ':' + e.created;
@@ -2164,7 +2173,7 @@
   }
   function mapNearest(lat, lon) { // the stored map whose edge is closest, and how far away that edge is
     let best = null, bestM = Infinity;
-    if (mapList) for (const e of mapList.maps) {
+    if (mapList) for (const e of mapsOn()) {
       const dx = Math.max(Math.abs((lon - e.lon0) * 111320 * Math.cos(e.lat0 * Math.PI / 180)) - e.half, 0), dy = Math.max(Math.abs((lat - e.lat0) * 110540) - e.half, 0), d = Math.hypot(dx, dy);
       if (d < bestM) { bestM = d; best = e; }
     }
@@ -2273,7 +2282,7 @@
 
   // The coverage map calls this; `proj` and `cx, cy, scale` are its own projection (metres around its first point, then pixels).
   function coverageMapLayer(svg, proj, cx, cy, scale, lat, lon, sizeM) {
-    if (!mapShow || !mapList || !mapList.maps.length) return null;
+    if (!mapShow || !mapList || !mapsOn().length) return null;
     const entry = pickMapFor(lat, lon);
     if (!entry) return {entry: null, state: 'outside', warn: mapWarning(null, lat, lon)};
     const map = mapReady(entry);
@@ -2434,6 +2443,10 @@
         left.appendChild(mk('div', '', m.name + (here && here.slug === m.slug ? '  \u2022 you are inside' : '')));
         if (!m.size) left.appendChild(mk('div', 'mapWarn', 'The map data is missing on the board. Delete this map and make or upload it again.'));
         left.appendChild(mk('div', 'mapSub', side + ' \u00D7 ' + side + ' mi \u00B7 ' + Math.round(m.size / 1024) + ' KB \u00B7 built ' + new Date(m.created * 1000).toISOString().slice(0, 10)));
+        const act = mk('label', 'mapActiveRow'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'mapActiveBox'; cb.id = 'mapActive_' + m.slug; cb.checked = !mapOff.has(m.slug);
+        cb.onchange = () => { mapSetActive(m, cb.checked); renderMap(); };
+        act.appendChild(cb); act.appendChild(document.createTextNode(' Active (used on the map and by Find)')); left.appendChild(act);
+        if (mapOff.has(m.slug)) { row.classList.add('mapInactive'); left.appendChild(mk('div', 'mapSub', 'Switched off on this phone: it stays stored but is not drawn or searched.')); }
         const right = mk('span', 'mapRowBtns');
         const dl = mk('button', '', 'Download'); dl.onclick = () => mapDownload(m);
         const rm = mk('button', 'danger', 'Delete'); rm.onclick = () => mapDelete(m);
@@ -3921,6 +3934,16 @@
   let radarSelected = null;        // the id of the person whose details are showing
   let radarDrawer = false;         // the people list is pulled up
   let findPick = null;              // the arrow you tapped in Find: {kind, name, detail, lat, lon, miles}
+  const FIND_COUNTS = [3, 5, 8, 10, 15, 20]; let radarFindCount = 5; // how many of the nearest places Find shows
+  try { const v = parseInt(localStorage.getItem('loraFindCount'), 10); if (FIND_COUNTS.indexOf(v) >= 0) radarFindCount = v; } catch (e) { /* keep 5 */ }
+  function findCountRow(body) { // the "how many to show" choice, in the Find list and in the map settings
+    const row = document.createElement('label'); row.className = 'radarCheck radarFindCountRow'; row.htmlFor = 'findCountSel';
+    const t = document.createElement('span'); t.textContent = 'How many of the nearest to show: ';
+    const sel = document.createElement('select'); sel.id = 'findCountSel'; sel.setAttribute('aria-label', 'How many of the nearest found places to show');
+    for (const n of FIND_COUNTS) { const o = document.createElement('option'); o.value = String(n); o.textContent = String(n) + (n === 5 ? ' (usual)' : ''); if (n === radarFindCount) o.selected = true; sel.appendChild(o); }
+    sel.onchange = () => { radarFindCount = parseInt(sel.value, 10); try { localStorage.setItem('loraFindCount', String(radarFindCount)); } catch (e) { /* not saved */ } findPick = null; renderMap(); };
+    row.appendChild(t); row.appendChild(sel); body.appendChild(row);
+  }
   let radarFindKind = null;        // Find: which kind of place has arrows on the map (10 to 15, see MAP_POI), or null
   let radarSheet = null;           // 'layers' | 'help' | null
   let radarDragging = false, radarSuppressClick = false, radarDirty = false, radarResizeTimer = null;
@@ -3951,11 +3974,11 @@
     let deg = null;
     try { const mo = selfMotion(); if (mo && mo.headingDeg !== null && mo.headingDeg !== undefined) deg = mo.headingDeg; } catch (e) { /* no motion yet */ }
     if (deg === null && compassSupported() && compassFresh()) deg = compassHeading;
-    if (deg === null) { if (headCompassText !== '') { headCompassText = ''; el.style.display = 'none'; el.textContent = ''; } return; }
+    if (deg === null) { if (headCompassText !== '') { headCompassText = ''; el.style.display = 'none'; el.textContent = ''; if (el.parentNode) el.parentNode.classList.remove('hasCompass'); } return; }
     const d = Math.round(((deg % 360) + 360) % 360) % 360, txt = compassDirection(d) + ' ' + d + '\u00B0';
     if (txt === headCompassText) return;
     headCompassText = txt;
-    el.style.display = '';
+    el.style.display = ''; if (el.parentNode) el.parentNode.classList.add('hasCompass');
     el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'Heading ' + compassDirection(d) + ', ' + d + ' degrees');
     el.innerHTML = '<svg viewBox="-10 -10 20 20" width="15" height="15" aria-hidden="true"><circle r="9" fill="#1e1e1e" stroke="#8a8a8a" stroke-width="1.2"/><g transform="rotate(' + (-d) + ')"><text y="-3.2" text-anchor="middle" font-size="6" font-weight="800" fill="#ff5252">N</text></g><line x1="0" y1="3" x2="0" y2="-6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><polygon points="0,-9 -2.4,-5 2.4,-5" fill="#e53935"/></svg><span></span>';
     el.lastChild.textContent = txt;
@@ -4039,7 +4062,7 @@
 
   // ---- the map under the radar: every stored map that reaches into view, the smallest on top ----
   function radarMapLayers(world, G, V) {
-    if (!mapShow || !selfHasFix || !mapList || !mapList.maps.length) return null;
+    if (!mapShow || !selfHasFix || !mapList || !mapsOn().length) return null;
     const self = pickMapFor(selfLat, selfLon);
     let info;
     if (!self) info = {entry: null, state: 'outside', warn: mapWarning(null, selfLat, selfLon)};
@@ -4047,12 +4070,12 @@
       const m = mapReady(self);
       if (m) {
         let warn = mapWarning(self, selfLat, selfLon);
-        if (warn && mapList.maps.some(e => e !== self && mapContains(e, selfLat, selfLon))) warn = ''; // another stored map also covers you, so the edge does not matter
+        if (warn && mapsOn().some(e => e !== self && mapContains(e, selfLat, selfLon))) warn = ''; // another stored map also covers you, so the edge does not matter
         info = {entry: self, state: 'ready', map: m, warn: warn};
       } else { const slot = mapCache.get(mapKey(self)); info = {entry: self, state: slot ? slot.state : 'loading', error: slot && slot.error, tries: slot && slot.tries}; }
     }
     const reach = Math.hypot(G.W, G.H) / 2 / G.k; // metres from the centre of the view to its far corner
-    const touching = mapList.maps.filter(e => {
+    const touching = mapsOn().filter(e => {
       const dx = Math.max(Math.abs((G.centreLon - e.lon0) * 111320 * Math.cos(e.lat0 * Math.PI / 180)) - e.half, 0), dy = Math.max(Math.abs((G.centreLat - e.lat0) * 110540) - e.half, 0);
       return Math.hypot(dx, dy) <= reach;
     }).sort((a, b) => b.half - a.half); // the biggest first, so a smaller one is drawn on top of it
@@ -4252,7 +4275,7 @@
   function findCandidates(kind) {
     const out = [], seenK = new Set();
     if (!mapList || !selfHasFix) return out;
-    for (const e of mapList.maps) {
+    for (const e of mapsOn()) {
       const m = mapReady(e);
       if (!m || !m.places) continue;
       const kx = 111320 * Math.cos(m.lat0 * Math.PI / 180);
@@ -4305,39 +4328,57 @@
   function findCounts() { const c = {}; for (const k of Object.keys(MAP_POI)) c[k] = findCandidates(+k).length; return c; }
   function radarFindDraw(world, G, me) {
     if (radarFindKind === null) return;
-    const meta = MAP_POI[radarFindKind], five = findCandidates(radarFindKind).slice(0, 5), V = G.V;
+    const meta = MAP_POI[radarFindKind], five = findCandidates(radarFindKind).slice(0, radarFindCount), V = G.V;
     const g = svgEl('g', {class: 'radarFind', id: 'radarFind', 'data-kind': String(radarFindKind)});
     let stackH = 0; try { const st = document.getElementById('radarBottomStack'); stackH = st ? st.offsetHeight : 0; } catch (e) {}
     const x0 = Math.min(64, G.W * 0.12), x1 = G.W - x0, y0 = G.usableH > 520 ? 190 : 96, y1 = Math.max(y0 + 40, G.usableH - Math.max(stackH, 150) - 22); // clear of the button columns, the top readout and the bottom strip
-    const labels = [];
-    five.forEach((c, i) => {
-      const item = svgEl('g', {class: 'radarFindItem', 'data-i': String(i), tabindex: '0', role: 'button', 'aria-label': (i + 1) + '. ' + c.name + ', ' + formatDistance(c.miles) + '. Tap for details.'});
+    const labels = [], rw = x1 - x0, rh = y1 - y0, perim = 2 * (rw + rh);
+    const toPerim = (x, y) => { // where along the edge of the safe rectangle (clockwise from its top-left corner) a point on that edge is
+      const dT = Math.abs(y - y0), dB = Math.abs(y - y1), dL = Math.abs(x - x0), dR = Math.abs(x - x1), m = Math.min(dT, dB, dL, dR);
+      return m === dT ? x - x0 : m === dR ? rw + (y - y0) : m === dB ? rw + rh + (x1 - x) : 2 * rw + rh + (y1 - y);
+    };
+    const fromPerim = (t) => { t = ((t % perim) + perim) % perim; return t < rw ? {x: x0 + t, y: y0, side: 't'} : t < rw + rh ? {x: x1, y: y0 + t - rw, side: 'r'} : t < 2 * rw + rh ? {x: x1 - (t - rw - rh), y: y1, side: 'b'} : {x: x0, y: y1 - (t - 2 * rw - rh), side: 'l'}; };
+    // Every arrow sits out at the edge of the map, in the direction of its place, so they are not piled up around you; the star marks the real spot.
+    const rows = five.map((c, i) => {
+      const pt = G.ll(c.lat, c.lon); let dx = pt.x - me.x, dy = pt.y - me.y; if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) dy = -1;
+      let t = Infinity;
+      if (dx > 0) t = Math.min(t, (x1 - me.x) / dx); else if (dx < 0) t = Math.min(t, (x0 - me.x) / dx);
+      if (dy > 0) t = Math.min(t, (y1 - me.y) / dy); else if (dy < 0) t = Math.min(t, (y0 - me.y) / dy);
+      t = Math.max(0, t); const ex = me.x + dx * t, ey = me.y + dy * t;
+      return {c: c, i: i, pt: pt, inView: pt.x >= x0 && pt.x <= x1 && pt.y >= y0 && pt.y <= y1, t: toPerim(ex, ey)};
+    });
+    const order = rows.slice().sort((a, b) => a.t - b.t), gap = Math.min(52, perim / Math.max(1, order.length)); // spread arrows that would land close together along the edge
+    for (let k = 1; k < order.length; k++) if (order[k].t < order[k - 1].t + gap) order[k].t = order[k - 1].t + gap;
+    if (order.length > 1 && order[order.length - 1].t > perim) { const back = order[order.length - 1].t - perim; for (const r of order) r.t -= back; for (let k = order.length - 2; k >= 0; k--) if (order[k].t > order[k + 1].t - gap) order[k].t = order[k + 1].t - gap; }
+    rows.forEach((r) => {
+      const c = r.c, i = r.i, item = svgEl('g', {class: 'radarFindItem', 'data-i': String(i), tabindex: '0', role: 'button', 'aria-label': (i + 1) + '. ' + c.name + ', ' + formatDistance(c.miles) + '. Tap for details.'});
       item.style.cursor = 'pointer';
       const pick = () => { if (radarSuppressClick) return; findPick = (findPick && findKey(findPick) === findKey(c)) ? null : c; markSel = null; radarSelected = null; renderMap(); };
       item.addEventListener('click', (e) => { e.stopPropagation(); pick(); });
       item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pick(); } });
-      const pt = G.ll(c.lat, c.lon);
-      let dx = pt.x - me.x, dy = pt.y - me.y, ex = pt.x, ey = pt.y, clipped = false;
-      if (ex < x0 || ex > x1 || ey < y0 || ey > y1) { // out of view: the arrow sits at the edge, pointing the way
-        let t = 1;
-        if (dx > 0) t = Math.min(t, (x1 - me.x) / dx); else if (dx < 0) t = Math.min(t, (x0 - me.x) / dx);
-        if (dy > 0) t = Math.min(t, (y1 - me.y) / dy); else if (dy < 0) t = Math.min(t, (y0 - me.y) / dy);
-        t = Math.max(0, t); ex = me.x + dx * t; ey = me.y + dy * t; clipped = true;
-      }
-      const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const ep = fromPerim(r.t), ex = ep.x, ey = ep.y, side = ep.side, dx = ex - me.x, dy = ey - me.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
       item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 24, fill: '#000', 'fill-opacity': 0.001, class: 'radarFindHit'}));
       item.appendChild(svgEl('line', {x1: me.x.toFixed(1), y1: me.y.toFixed(1), x2: ex.toFixed(1), y2: ey.toFixed(1), stroke: meta.color, 'stroke-width': 1.8, 'stroke-dasharray': '6 4', 'stroke-opacity': 0.8, class: 'radarFindLine'}));
+      if (r.inView) { // the real place: a yellow star, with a thin line out to its arrow
+        item.appendChild(svgEl('line', {x1: r.pt.x.toFixed(1), y1: r.pt.y.toFixed(1), x2: ex.toFixed(1), y2: ey.toFixed(1), stroke: meta.color, 'stroke-width': 1, 'stroke-dasharray': '2 4', 'stroke-opacity': 0.7, class: 'radarFindLink'}));
+        item.appendChild(svgEl('circle', {cx: r.pt.x.toFixed(1), cy: r.pt.y.toFixed(1), r: 18, fill: '#000', 'fill-opacity': 0.001, class: 'radarFindHit'}));
+        const star = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? 4.6 : 11; star.push((r.pt.x + rad * Math.cos(a)).toFixed(1) + ',' + (r.pt.y + rad * Math.sin(a)).toFixed(1)); }
+        item.appendChild(svgEl('polygon', {points: star.join(' '), fill: '#ffd600', stroke: '#5d4a00', 'stroke-width': 1.2, 'stroke-linejoin': 'round', class: 'radarFindStar'}));
+        item.appendChild(svgEl('text', {x: (r.pt.x + 13).toFixed(1), y: (r.pt.y + 4).toFixed(1), fill: V.ink, 'font-size': 11, 'font-weight': 700, stroke: V.halo, 'stroke-opacity': 0.85, 'stroke-width': 3, 'paint-order': 'stroke', class: 'radarFindStarNo'}, String(i + 1)));
+      }
       const ah = [[ex, ey], [ex - 14 * ux + 7 * uy, ey - 14 * uy - 7 * ux], [ex - 14 * ux - 7 * uy, ey - 14 * uy + 7 * ux]];
-      item.appendChild(svgEl('polygon', {points: ah.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: meta.color, stroke: V.halo, 'stroke-width': 1.5, class: 'radarFindArrow', 'data-clipped': clipped ? 'yes' : 'no'}));
-      const nm = c.name.length > 24 ? c.name.slice(0, 23) + '\u2026' : c.name, txt = (i + 1) + '. ' + nm + ' \u00B7 ' + formatDistance(c.miles), tw = txt.length * 7.4;
-      const onLeft = ex > G.W / 2; // label sits inward of the arrow, so it never runs off the map
+      item.appendChild(svgEl('polygon', {points: ah.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: meta.color, stroke: V.halo, 'stroke-width': 1.5, class: 'radarFindArrow', 'data-clipped': r.inView ? 'no' : 'yes'}));
+      const nm = c.name.length > 24 ? c.name.slice(0, 23) + '…' : c.name, txt = (i + 1) + '. ' + nm + ' · ' + formatDistance(c.miles), tw = txt.length * 7.4;
+      const vert = side === 't' || side === 'b', onLeft = side === 'r';
       let lx = ex + (onLeft ? -12 : 12), anchor = onLeft ? 'end' : 'start';
-      const vert = clipped && Math.abs(ux) < 0.5;
       if (vert) { lx = Math.min(Math.max(ex, tw / 2 + 8), G.W - tw / 2 - 8); anchor = 'middle'; } // arrow on the top or bottom edge: label centred over it
-      const ly0 = vert ? ey + (uy > 0 ? -14 : 24) : ey - 12; // beside the arrow, just above its line
+      const ly0 = vert ? ey + (side === 'b' ? -14 : 24) : ey - 12; // beside the arrow, just above its line
       const lab = svgEl('text', {x: lx.toFixed(1), y: ly0.toFixed(1), fill: V.ink, 'font-size': 13, 'font-weight': 700, 'text-anchor': anchor, stroke: V.halo, 'stroke-opacity': 0.85, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarFindLabel'}, txt);
       item.appendChild(lab); labels.push({el: lab, x: lx, y: ly0, w: tw, anchor: anchor});
-      if (findPick && findKey(findPick) === findKey(c)) item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 16, fill: 'none', stroke: '#fff', 'stroke-width': 2, class: 'radarFindSel'}));
+      if (findPick && findKey(findPick) === findKey(c)) {
+        item.appendChild(svgEl('circle', {cx: ex.toFixed(1), cy: ey.toFixed(1), r: 16, fill: 'none', stroke: '#fff', 'stroke-width': 2, class: 'radarFindSel'}));
+        if (r.inView) item.appendChild(svgEl('circle', {cx: r.pt.x.toFixed(1), cy: r.pt.y.toFixed(1), r: 16, fill: 'none', stroke: '#fff', 'stroke-width': 2, class: 'radarFindSel'}));
+      }
       g.appendChild(item);
     });
     const span = (l) => l.anchor === 'end' ? [l.x - l.w, l.x] : l.anchor === 'middle' ? [l.x - l.w / 2, l.x + l.w / 2] : [l.x, l.x + l.w];
@@ -4355,14 +4396,15 @@
     world.appendChild(g);
   }
   function findSheetBody(body, sec) {
-    sec('Show the five nearest');
+    sec('Show the nearest');
     const counts = findCounts(), any = Object.values(counts).some(n => n > 0);
     for (const [k, meta] of Object.entries(MAP_POI)) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'radarFindOpt'; b.id = 'radarFind_' + k; b.disabled = counts[k] === 0;
       b.textContent = meta.name + ' (' + counts[k] + ')';
-      b.onclick = () => { radarFindKind = +k; findPick = null; radarSheet = null; toast('Arrows to the ' + Math.min(5, counts[k]) + ' nearest. Press the Find button again to clear them.'); renderMap(); };
+      b.onclick = () => { radarFindKind = +k; findPick = null; radarSheet = null; toast('Arrows to the ' + Math.min(radarFindCount, counts[k]) + ' nearest. Press the Find button again to clear them.'); renderMap(); };
       body.appendChild(b);
     }
+    findCountRow(body);
     const n = document.createElement('div'); n.className = 'mapNote'; n.id = 'radarFindNote';
     n.textContent = !selfHasFix ? 'Find needs your position.' : any ? 'The numbers are how many of each are in the maps stored here. Press the Find button again any time to clear the arrows.' : 'None of your stored maps has places to find. Build a map with \u201CPoints to find\u201D ticked (Gear, then Map files).';
     body.appendChild(n);
@@ -4423,6 +4465,7 @@
       if (info && info.state === 'ready' && info.map) mapLabelRow(body, info.map);
       else { const n = document.createElement('div'); n.className = 'mapNote'; n.textContent = 'Names can be switched on and off once a map has loaded.'; body.appendChild(n); }
       sec('On the map');
+      findCountRow(body);
       check('layerRings', 'Distance rings', radarOpts.rings, (on) => { radarOpts.rings = on; radarSave(); renderMap(); });
       check('layerTrails', 'Where people have been (their last few positions)', radarOpts.trails, (on) => { radarOpts.trails = on; radarSave(); renderMap(); });
       check('layerSignal', 'Colour people by signal strength', radarOpts.signal, (on) => { radarOpts.signal = on; radarSave(); renderMap(); });
@@ -4558,14 +4601,18 @@
     const headingDeg = facing === null ? null : (facing - rot + 360) % 360; // where that heading falls on the screen, for the compass needle
     const selfHalo = svgEl('circle', {cx: me.x.toFixed(1), cy: me.y.toFixed(1), r: 21, fill: '#4fc3f7', 'fill-opacity': 0.22, class: 'radarSelfHalo'});
     world.appendChild(selfHalo);
-    const selfDot = svgEl('path', {d: 'M0 -12L9 10L0 5.5L-9 10Z', transform: 'translate(' + me.x.toFixed(1) + ' ' + me.y.toFixed(1) + ') rotate(' + arrowDeg.toFixed(0) + ') scale(1.45)', cx: me.x.toFixed(1), cy: me.y.toFixed(1), fill: '#4fc3f7', stroke: V.halo, 'stroke-width': 2, 'stroke-linejoin': 'round', class: 'radarSelf' + (facing === null || !radarOpts.arrowHeading ? ' noDirection' : ''), 'data-facing': facing === null ? '' : String(Math.round(facing)), 'data-by': facingBy});
+    const selfDot = svgEl('path', {d: 'M0 -12L9 10L0 5.5L-9 10Z', transform: 'translate(' + me.x.toFixed(1) + ' ' + me.y.toFixed(1) + ') rotate(' + arrowDeg.toFixed(0) + ') scale(1.45)', cx: me.x.toFixed(1), cy: me.y.toFixed(1), fill: V.light ? '#1976f0' : '#4fc3f7', stroke: V.light ? '#04183a' : V.halo, 'stroke-width': V.light ? 2.4 : 2, 'stroke-linejoin': 'round', class: 'radarSelf' + (facing === null || !radarOpts.arrowHeading ? ' noDirection' : ''), 'data-facing': facing === null ? '' : String(Math.round(facing)), 'data-by': facingBy});
+    // on the light map the arrow gets a dark navy outline and a white edge outside it, so it stands out from the pale streets
+    const selfUnder = V.light ? svgEl('path', {d: 'M0 -12L9 10L0 5.5L-9 10Z', transform: selfDot.getAttribute('transform'), fill: 'none', stroke: '#ffffff', 'stroke-width': 6.5, 'stroke-linejoin': 'round', class: 'radarSelfEdge'}) : null;
+    if (V.light) { selfHalo.setAttribute('fill', '#1976f0'); selfHalo.setAttribute('fill-opacity', '0.3'); selfHalo.setAttribute('stroke', '#04183a'); selfHalo.setAttribute('stroke-opacity', '0.55'); selfHalo.setAttribute('stroke-width', '1.5'); }
     selfDot.appendChild(svgEl('title', {}, 'You'));
+    if (selfUnder) world.appendChild(selfUnder);
     world.appendChild(selfDot);
     if (dm.marks) markDraw(world, G);
     if (dm.found) radarFindDraw(world, G, me);
     if (replaying) { const layer = svgEl('g', {id: 'tripLayer'}); world.appendChild(layer); replayDraw(layer); }
-    if (selfNameStr) world.appendChild(svgEl('text', {x: me.x.toFixed(1), y: (me.y + 31).toFixed(1), fill: '#4fc3f7', 'fill-opacity': 0.85, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', stroke: V.halo, 'stroke-opacity': 0.7, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarSelfName'}, selfNameStr)); // your own name under the blue arrow, a little see-through
-    world.appendChild(selfHalo); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
+    if (selfNameStr) world.appendChild(svgEl('text', {x: me.x.toFixed(1), y: (me.y + 31).toFixed(1), fill: V.light ? '#0b5ea8' : '#4fc3f7', 'fill-opacity': V.light ? 1 : 0.85, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', stroke: V.halo, 'stroke-opacity': 0.7, 'stroke-width': 4, 'paint-order': 'stroke', class: 'radarSelfName'}, selfNameStr)); // your own name under the blue arrow, a little see-through
+    world.appendChild(selfHalo); if (selfUnder) world.appendChild(selfUnder); world.appendChild(selfDot); // you are drawn last, so a marker on the spot where you stand (the car, a named place) can never hide you
 
     // a scale bar that stays the same size on the screen: it picks a distance that is 40 to 130 pixels long
     let nice = RADAR_NICE_MILES[0];
@@ -4643,7 +4690,7 @@
     stack.appendChild(infoLine);
     { // what the current map view (1 to 6) is showing: a green tick or a red cross for each layer
       const sh = document.createElement('div'); sh.className = 'radarShowing'; sh.id = 'radarShowing'; sh.setAttribute('aria-label', 'Map view ' + radarDisplayMode + ' of ' + RADAR_VIEWS + ' shows:');
-      for (const [key, label, on] of [['people', 'Other people', dm.people], ['places', 'Saved places', dm.marks], ['found', 'Found places', dm.found], ['history', 'History', dm.tracks]]) {
+      for (const [key, label, on] of [['people', 'Other people', dm.people], ['places', 'Saved places', dm.marks], ['found', 'POI', dm.found], ['history', 'History', dm.tracks]]) {
         const it = document.createElement('span'); it.className = 'radarShowItem ' + (on ? 'on' : 'off'); it.setAttribute('data-layer', key); it.setAttribute('data-shown', on ? 'yes' : 'no');
         const g = document.createElement('b'); g.className = 'radarShowMark'; g.textContent = on ? '\u2714' : '\u2716'; g.setAttribute('aria-hidden', 'true');
         it.appendChild(g); it.appendChild(document.createTextNode(' ' + label)); it.title = label + (on ? ': shown' : ': hidden'); it.setAttribute('aria-label', label + (on ? ': shown' : ': hidden'));
